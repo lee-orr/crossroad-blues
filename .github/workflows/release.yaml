@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v3
       - id: setup-build-name
         run: |
-          NAME=$( sed -n 's/^name = "\(.*\)"/\1/p' < ./Cargo.toml )
+          NAME=$( sed -n 's/^name = "\(.*\)"/\1/p' < ./Cargo.toml | head -n 1 )
           echo "binary: _$NAME_"
           echo "BIN=$NAME" >> $GITHUB_OUTPUT
 
