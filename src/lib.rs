@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 mod app_state;
 mod assets;
 mod in_game;

@@ -1,3 +1,4 @@
+mod actions;
 mod game_completed;
 mod game_over;
 mod game_state;
@@ -18,6 +19,7 @@ use bevy_tweening::{
     Animator, EaseFunction, Tween, TweenCompleted,
 };
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
+use leafwing_input_manager::prelude::{ActionState, InputManagerPlugin};
 
 use crate::{
     app_state::AppState,
@@ -26,6 +28,7 @@ use crate::{
 };
 
 use self::{
+    actions::{input_manager, PlayerAction},
     game_completed::GameCompletedPlugin,
     game_over::GameOverPlugin,
     game_state::{GameState, PauseState},
@@ -38,7 +41,8 @@ pub struct InGamePlugin;
 
 impl Plugin for InGamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((PausePlugin, GameOverPlugin, GameCompletedPlugin))
+        app.add_plugins(InputManagerPlugin::<PlayerAction>::default())
+            .add_plugins((PausePlugin, GameOverPlugin, GameCompletedPlugin))
             .add_state::<GameState>()
             .register_type::<GameState>()
             .add_plugins(
@@ -75,6 +79,17 @@ pub struct InGameUpdate;
 pub struct Player;
 
 #[derive(Component)]
+pub struct CanTeleport {
+    pub max_distance: f32,
+}
+
+impl Default for CanTeleport {
+    fn default() -> Self {
+        Self { max_distance: 200. }
+    }
+}
+
+#[derive(Component)]
 pub struct Shadow {
     radius: f32,
 }
@@ -105,7 +120,12 @@ fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<Gl
                 },
             });
 
-            p.spawn((SpatialBundle::default(), Player));
+            p.spawn((
+                SpatialBundle::default(),
+                Player,
+                CanTeleport::default(),
+                input_manager(),
+            ));
 
             for _ in 0..5 {
                 let pos = Vec3::new(
@@ -153,25 +173,30 @@ fn run_in_game_update(world: &mut World) {
 }
 
 fn move_player(
-    mut player: Query<(&mut Transform, Option<&TeleportState>), With<Player>>,
-    movement: Res<Input<KeyCode>>,
+    mut player: Query<
+        (
+            &mut Transform,
+            Option<&TeleportState>,
+            &ActionState<PlayerAction>,
+        ),
+        With<Player>,
+    >,
 ) {
-    let vertical = if movement.pressed(KeyCode::W) {
-        1.
-    } else if movement.pressed(KeyCode::S) {
-        -1.
-    } else {
-        0.
-    };
-    let horizontal = if movement.pressed(KeyCode::D) {
-        -1.
-    } else if movement.pressed(KeyCode::A) {
-        1.
-    } else {
-        0.
-    };
-
-    for (mut transform, teleport) in player.iter_mut() {
+    for (mut transform, teleport, movement) in player.iter_mut() {
+        let vertical = if movement.pressed(PlayerAction::MoveForward) {
+            1.
+        } else if movement.pressed(PlayerAction::MoveBack) {
+            -1.
+        } else {
+            0.
+        };
+        let horizontal = if movement.pressed(PlayerAction::TurnRight) {
+            -1.
+        } else if movement.pressed(PlayerAction::TurnLeft) {
+            1.
+        } else {
+            0.
+        };
         if matches!(teleport, Some(TeleportState::Teleporting)) {
             continue;
         }
@@ -214,69 +239,72 @@ fn draw_shadow(shadow: Query<(&Transform, &Shadow)>, mut painter: ShapePainter) 
 }
 
 fn teleport_control(
-    players: Query<Entity, With<Player>>,
-    teleport_states: Query<(Entity, &TeleportState, &Transform), With<Player>>,
+    players: Query<(Entity, &ActionState<PlayerAction>), With<Player>>,
+    teleport_states: Query<(&TeleportState, &Transform, &CanTeleport), With<Player>>,
     shadows: Query<(&GlobalTransform, &Shadow)>,
     mut commands: Commands,
-    teleport: Res<Input<KeyCode>>,
 ) {
-    if teleport.just_pressed(KeyCode::Space) {
-        for player in players.iter() {
+    for (entity, teleport) in players.iter() {
+        if teleport.just_pressed(PlayerAction::Teleport) {
             commands
-                .entity(player)
+                .entity(entity)
                 .insert(TeleportState::GettingReady(0., false));
-        }
-    } else if teleport.just_released(KeyCode::Space) {
-        for (entity, teleport_state, transform) in teleport_states.iter() {
-            let dist = match &teleport_state {
-                TeleportState::GettingReady(dist, true) => Some(*dist),
-                _ => None,
-            };
-            if let Some(dist) = dist {
-                let next_position = transform.transform_point(Vec3::X * dist);
+        } else if teleport.just_released(PlayerAction::Teleport) {
+            if let Ok((teleport_state, transform, _)) = teleport_states.get(entity) {
+                let dist = match &teleport_state {
+                    TeleportState::GettingReady(dist, true) => Some(*dist),
+                    _ => None,
+                };
+                if let Some(dist) = dist {
+                    let next_position = transform.transform_point(Vec3::X * dist);
 
-                let shrink = Tween::new(
-                    EaseFunction::ExponentialIn,
-                    Duration::from_secs_f32(0.1),
-                    TransformScaleLens {
-                        start: transform.scale,
-                        end: Vec3::ONE * 0.1,
-                    },
-                );
+                    let shrink = Tween::new(
+                        EaseFunction::ExponentialIn,
+                        Duration::from_secs_f32(0.1),
+                        TransformScaleLens {
+                            start: transform.scale,
+                            end: Vec3::ONE * 0.1,
+                        },
+                    );
 
-                let grow = Tween::new(
-                    EaseFunction::ExponentialOut,
-                    Duration::from_secs_f32(0.1),
-                    TransformScaleLens {
-                        start: Vec3::ONE * 0.1,
-                        end: Vec3::ONE,
-                    },
-                )
-                .with_completed_event(TELEPORT_COMPLETED_EVENT);
+                    let grow = Tween::new(
+                        EaseFunction::ExponentialOut,
+                        Duration::from_secs_f32(0.1),
+                        TransformScaleLens {
+                            start: Vec3::ONE * 0.1,
+                            end: Vec3::ONE,
+                        },
+                    )
+                    .with_completed_event(TELEPORT_COMPLETED_EVENT);
 
-                let movement = Tween::new(
-                    EaseFunction::QuadraticInOut,
-                    Duration::from_secs_f32(0.4),
-                    TransformPositionLens {
-                        start: transform.translation,
-                        end: next_position,
-                    },
-                );
+                    let movement = Tween::new(
+                        EaseFunction::QuadraticInOut,
+                        Duration::from_secs_f32(0.4),
+                        TransformPositionLens {
+                            start: transform.translation,
+                            end: next_position,
+                        },
+                    );
 
-                let seq = shrink.then(movement).then(grow);
+                    let seq = shrink.then(movement).then(grow);
 
-                commands
-                    .entity(entity)
-                    .insert((TeleportState::Teleporting, Animator::new(seq)));
-            } else {
-                commands.entity(entity).remove::<TeleportState>();
+                    commands
+                        .entity(entity)
+                        .insert((TeleportState::Teleporting, Animator::new(seq)));
+                } else {
+                    commands.entity(entity).remove::<TeleportState>();
+                }
             }
-        }
-    } else if teleport.pressed(KeyCode::Space) {
-        for (entity, teleport_state, transform) in teleport_states.iter() {
-            if let TeleportState::GettingReady(dist, _) = teleport_state {
+        } else if teleport.pressed(PlayerAction::Teleport) {
+            if let Ok((TeleportState::GettingReady(dist, _), transform, can_teleport)) =
+                teleport_states.get(entity)
+            {
                 let dist = *dist;
-                let dist = if dist >= 200. { 200. } else { dist + 5. };
+                let dist = if dist >= can_teleport.max_distance {
+                    can_teleport.max_distance
+                } else {
+                    dist + 5.
+                };
 
                 let next_position = transform.transform_point(Vec3::X * dist);
                 let valid = shadows.iter().any(|(transform, shadow)| {
