@@ -11,7 +11,7 @@
         {
             "label": "Watch",
             "type": "shell",
-            "command": "cargo watch -w ./src -d 2 -x run"
+            "command": "dexterous_developer_cli serve"
         },
         {
             "label": "Run Wasm",

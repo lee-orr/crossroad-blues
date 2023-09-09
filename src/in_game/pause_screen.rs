@@ -89,12 +89,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.entity(menu_button.unwrap()).insert(Buttons::Menu);
 }
 
-fn exit(mut commands: Commands, query: Query<Entity, With<Screen>>) {
-    for item in query.iter() {
-        commands.entity(item).despawn_recursive();
-    }
-}
-
 fn process_input(
     In(focused): In<Option<Entity>>,
     mut commands: Commands,
