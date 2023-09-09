@@ -16,7 +16,8 @@
 			"extensions": [
 				"serayuzgur.crates",
 				"rust-lang.rust-analyzer",
-				"tamasfe.even-better-toml"
+				"tamasfe.even-better-toml",
+				"spencerwmiles.vscode-task-buttons"
 			]
 		}
 	}

@@ -12,9 +12,7 @@ use crate::{
 };
 
 use super::game_state::PauseState;
-use dexterous_developer::{
-    dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
-};
+use dexterous_developer::{dexterous_developer_setup, ReloadableApp, ReloadableAppContents};
 pub struct PausePlugin;
 
 impl Plugin for PausePlugin {
