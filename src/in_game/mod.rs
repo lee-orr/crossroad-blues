@@ -10,6 +10,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_inspector_egui::quick::StateInspectorPlugin;
+use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 
 use crate::{
@@ -52,7 +53,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
             run_in_game_update.run_if(in_state(PauseState::None)),
         )
         .add_systems(InGameUpdate, move_player)
-        .add_systems(PostUpdate, draw_player);
+        .add_systems(PostUpdate, (draw_player, draw_shadow));
 }
 
 #[derive(Component)]
@@ -64,7 +65,13 @@ pub struct InGameUpdate;
 #[derive(Component)]
 pub struct Player;
 
-fn setup(mut commands: Commands, assets: Res<MainGameAssets>) {
+#[derive(Component)]
+pub struct Shadow {
+    radius: f32,
+}
+
+fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<GlobalRng>) {
+    let mut rng = rng.get_mut();
     commands.insert_resource(ClearColor(DEFAULT_CLEAR));
     commands.insert_resource(DEFAULT_AMBIENT);
     commands
@@ -84,6 +91,23 @@ fn setup(mut commands: Commands, assets: Res<MainGameAssets>) {
             });
 
             p.spawn((SpatialBundle::default(), Player));
+
+            for i in 0..5 {
+                let pos = Vec3::new(
+                    rng.f32_normalized() * 300.,
+                    rng.f32_normalized() * 300.,
+                    -5.,
+                );
+                p.spawn((
+                    SpatialBundle {
+                        transform: Transform::from_translation(pos),
+                        ..Default::default()
+                    },
+                    Shadow {
+                        radius: rng.f32_normalized() * 50. + 20.,
+                    },
+                ));
+            }
         });
 }
 
@@ -141,6 +165,14 @@ fn draw_player(player: Query<&Transform, With<Player>>, mut painter: ShapePainte
     for player in player.iter() {
         painter.set_translation(player.translation);
         painter.color = crate::ui::colors::PRIMARY_COLOR;
-        painter.circle(50.);
+        painter.circle(10.);
+    }
+}
+
+fn draw_shadow(shadow: Query<(&Transform, &Shadow)>, mut painter: ShapePainter) {
+    painter.color = crate::ui::colors::PRIMARY_BACKGROUND_COLOR;
+    for (trasnform, shadow) in shadow.iter() {
+        painter.set_translation(trasnform.translation);
+        painter.circle(shadow.radius);
     }
 }

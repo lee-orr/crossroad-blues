@@ -11,6 +11,11 @@
         {
             "label": "Watch",
             "type": "shell",
+            "command": "dexterous_developer_cli run"
+        },
+        {
+            "label": "Serve",
+            "type": "shell",
             "command": "dexterous_developer_cli serve"
         },
         {

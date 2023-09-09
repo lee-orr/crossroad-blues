@@ -9,6 +9,10 @@
             "task": "Watch"
         },
         {
+            "label": "Serve",
+            "task": "Serve"
+        },
+        {
             "label": "Run Wasm",
             "task": "Run Wasm"
         },
