@@ -76,20 +76,9 @@ fn bevy_main(initial: impl InitialPlugins) {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_translation(Vec3::new(-2., 5., -5.))
-            .looking_at(Vec3::Y, Vec3::Y),
-        tonemapping: Tonemapping::AcesFitted,
-        ..default()
-    });
-
     commands.spawn(Camera2dBundle {
-        camera: Camera {
-            order: 1,
-            ..default()
-        },
         camera_2d: Camera2d {
-            clear_color: ClearColorConfig::None,
+            clear_color: ClearColorConfig::Custom(ui::colors::SCREEN_BACKGROUND_COLOR),
         },
         tonemapping: Tonemapping::AcesFitted,
         ..default()

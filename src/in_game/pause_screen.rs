@@ -12,7 +12,9 @@ use crate::{
 };
 
 use super::game_state::PauseState;
-use dexterous_developer::{dexterous_developer_setup, ReloadableApp, ReloadableAppContents};
+use dexterous_developer::{
+    dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
+};
 pub struct PausePlugin;
 
 impl Plugin for PausePlugin {
@@ -30,20 +32,14 @@ impl Plugin for PausePlugin {
                     (focused_button_activated.pipe(process_input)),
                 )
                     .run_if(in_state(AppState::InGame)),
-            );
+            )
+            .setup_reloadable_elements::<reloadable>();
     }
 }
 #[dexterous_developer_setup(pause)]
 fn reloadable(app: &mut ReloadableAppContents) {
-    app.reset_setup_in_state::<Screen, _, _>(PauseState::Paused, setup)
-        .add_systems(
-            Update,
-            (
-                process_keyboard_input,
-                (focused_button_activated.pipe(process_input)),
-            )
-                .run_if(in_state(AppState::InGame)),
-        );
+    println!("Reloaded...");
+    app.reset_setup_in_state::<Screen, _, _>(PauseState::Paused, setup);
 }
 
 #[derive(Component)]

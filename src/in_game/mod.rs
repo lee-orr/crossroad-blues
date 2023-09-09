@@ -10,6 +10,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_inspector_egui::quick::StateInspectorPlugin;
+use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 
 use crate::{
     app_state::AppState,
@@ -49,7 +50,9 @@ fn reloadable(app: &mut ReloadableAppContents) {
         .add_systems(
             Update,
             run_in_game_update.run_if(in_state(PauseState::None)),
-        );
+        )
+        .add_systems(InGameUpdate, move_player)
+        .add_systems(PostUpdate, draw_player);
 }
 
 #[derive(Component)]
@@ -57,6 +60,9 @@ struct InGame;
 
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct InGameUpdate;
+
+#[derive(Component)]
+pub struct Player;
 
 fn setup(mut commands: Commands, assets: Res<MainGameAssets>) {
     commands.insert_resource(ClearColor(DEFAULT_CLEAR));
@@ -76,6 +82,8 @@ fn setup(mut commands: Commands, assets: Res<MainGameAssets>) {
                     ..Default::default()
                 },
             });
+
+            p.spawn((SpatialBundle::default(), Player));
         });
 }
 
@@ -103,4 +111,36 @@ fn enable_audio(audio: Query<&AudioSink>) {
 
 fn run_in_game_update(world: &mut World) {
     let _ = world.try_run_schedule(InGameUpdate);
+}
+
+fn move_player(mut player: Query<&mut Transform, With<Player>>, movement: Res<Input<KeyCode>>) {
+    let vertical = if movement.pressed(KeyCode::W) {
+        1.
+    } else if movement.pressed(KeyCode::S) {
+        -1.
+    } else {
+        0.
+    };
+    let horizontal = if movement.pressed(KeyCode::D) {
+        1.
+    } else if movement.pressed(KeyCode::A) {
+        -1.
+    } else {
+        0.
+    };
+
+    let direction = Vec2::new(horizontal, vertical);
+
+    for mut player in player.iter_mut() {
+        player.translation.x += direction.x * 3.0;
+        player.translation.y += direction.y * 3.0;
+    }
+}
+
+fn draw_player(player: Query<&Transform, With<Player>>, mut painter: ShapePainter) {
+    for player in player.iter() {
+        painter.set_translation(player.translation);
+        painter.color = crate::ui::colors::PRIMARY_COLOR;
+        painter.circle(50.);
+    }
 }

@@ -2,21 +2,21 @@
 use bevy::prelude::{AmbientLight, Color};
 
 pub const OVERLAY_COLOR: Color = Color::rgba(0., 0., 0., 0.9);
-pub const BORDER_COLOR: Color = Color::rgb(0.19, 0.25, 0.35);
+pub const BORDER_COLOR: Color = Color::rgb(0., 0., 0.02);
 
-pub const SCREEN_BACKGROUND_COLOR: Color = Color::rgb(0.46, 0.76, 0.96);
+pub const SCREEN_BACKGROUND_COLOR: Color = Color::rgb(0., 0.13, 0.33);
 
-pub const PRIMARY_BACKGROUND_COLOR: Color = Color::rgb(0.11, 0.36, 0.61);
+pub const PRIMARY_BACKGROUND_COLOR: Color = Color::rgb(0., 0.05, 0.13);
 
-pub const PRIMARY_COLOR: Color = Color::rgb(0.96, 0.82, 0.38);
-pub const PRIMARY_COLOR_PRIORITIZED: Color = Color::rgb(0.98, 0.93, 0.67);
+pub const PRIMARY_COLOR: Color = Color::rgb(0.7, 0.4, 0.08);
+pub const PRIMARY_COLOR_PRIORITIZED: Color = Color::rgb(0.45, 0.26, 0.06);
 pub const PRIMARY_COLOR_FOCUSED: Color = PRIMARY_COLOR_PRIORITIZED;
 pub const PRIMARY_COLOR_ACTIVE: Color = PRIMARY_COLOR_PRIORITIZED;
-pub const PRIMARY_COLOR_BLOCKED: Color = Color::rgb(0.48, 0.64, 0.74);
+pub const PRIMARY_COLOR_BLOCKED: Color = Color::rgb(0.71, 0.6, 0.48);
 
 pub const DEFAULT_AMBIENT: AmbientLight = AmbientLight {
     color: Color::rgb(1., 1., 1.),
     brightness: 0.26,
 };
 
-pub const DEFAULT_CLEAR: Color = Color::rgb(0.75, 0.75, 0.75);
+pub const DEFAULT_CLEAR: Color = Color::rgb(0.68, 0.66, 0.62);
