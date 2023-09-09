@@ -17,7 +17,9 @@ use bevy::{
 };
 
 use bevy_inspector_egui::quick::{StateInspectorPlugin, WorldInspectorPlugin};
+use bevy_sequential_actions::SequentialActionsPlugin;
 use bevy_turborand::prelude::RngPlugin;
+use bevy_tweening::TweeningPlugin;
 use bevy_vector_shapes::Shape2dPlugin;
 use credits::CreditsPlugin;
 use dexterous_developer::{hot_bevy_main, InitialPlugins};
@@ -52,6 +54,8 @@ fn bevy_main(initial: impl InitialPlugins) {
             Shape2dPlugin::default(),
             WorldInspectorPlugin::new().run_if(input_toggle_active(false, KeyCode::F1)),
             RngPlugin::default(),
+            TweeningPlugin,
+            SequentialActionsPlugin,
         ))
         .insert_resource(ClearColor(ui::colors::SCREEN_BACKGROUND_COLOR))
         .insert_resource(DEFAULT_AMBIENT)

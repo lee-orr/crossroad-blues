@@ -3,6 +3,8 @@ mod game_over;
 mod game_state;
 mod pause_screen;
 
+use std::{default, time::Duration};
+
 use bevy::{
     audio::{Volume, VolumeLevel},
     ecs::schedule::ScheduleLabel,
@@ -11,6 +13,10 @@ use bevy::{
 };
 use bevy_inspector_egui::quick::StateInspectorPlugin;
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
+use bevy_tweening::{
+    lens::{TransformPositionLens, TransformScaleLens},
+    Animator, EaseFunction, Tween, TweenCompleted,
+};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 
 use crate::{
@@ -52,7 +58,10 @@ fn reloadable(app: &mut ReloadableAppContents) {
             Update,
             run_in_game_update.run_if(in_state(PauseState::None)),
         )
-        .add_systems(InGameUpdate, move_player)
+        .add_systems(
+            InGameUpdate,
+            (move_player, teleport_control, clear_teleport),
+        )
         .add_systems(PostUpdate, (draw_player, draw_shadow));
 }
 
@@ -62,12 +71,18 @@ struct InGame;
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct InGameUpdate;
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Player;
 
 #[derive(Component)]
 pub struct Shadow {
     radius: f32,
+}
+
+#[derive(Debug, Component)]
+enum TeleportState {
+    GettingReady(f32, bool),
+    Teleporting,
 }
 
 fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<GlobalRng>) {
@@ -92,7 +107,7 @@ fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<Gl
 
             p.spawn((SpatialBundle::default(), Player));
 
-            for i in 0..5 {
+            for _ in 0..5 {
                 let pos = Vec3::new(
                     rng.f32_normalized() * 300.,
                     rng.f32_normalized() * 300.,
@@ -104,7 +119,7 @@ fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<Gl
                         ..Default::default()
                     },
                     Shadow {
-                        radius: rng.f32_normalized() * 50. + 20.,
+                        radius: rng.f32_normalized().abs() * 50. + 20.,
                     },
                 ));
             }
@@ -137,7 +152,10 @@ fn run_in_game_update(world: &mut World) {
     let _ = world.try_run_schedule(InGameUpdate);
 }
 
-fn move_player(mut player: Query<&mut Transform, With<Player>>, movement: Res<Input<KeyCode>>) {
+fn move_player(
+    mut player: Query<(&mut Transform, Option<&TeleportState>), With<Player>>,
+    movement: Res<Input<KeyCode>>,
+) {
     let vertical = if movement.pressed(KeyCode::W) {
         1.
     } else if movement.pressed(KeyCode::S) {
@@ -146,26 +164,44 @@ fn move_player(mut player: Query<&mut Transform, With<Player>>, movement: Res<In
         0.
     };
     let horizontal = if movement.pressed(KeyCode::D) {
-        1.
-    } else if movement.pressed(KeyCode::A) {
         -1.
+    } else if movement.pressed(KeyCode::A) {
+        1.
     } else {
         0.
     };
 
-    let direction = Vec2::new(horizontal, vertical);
+    for (mut transform, teleport) in player.iter_mut() {
+        if matches!(teleport, Some(TeleportState::Teleporting)) {
+            continue;
+        }
+        transform.rotate_z(horizontal * 0.1);
 
-    for mut player in player.iter_mut() {
-        player.translation.x += direction.x * 3.0;
-        player.translation.y += direction.y * 3.0;
+        let translation = transform.transform_point(Vec3::X * vertical * 3.0);
+
+        transform.translation = translation;
     }
 }
 
-fn draw_player(player: Query<&Transform, With<Player>>, mut painter: ShapePainter) {
-    for player in player.iter() {
-        painter.set_translation(player.translation);
+fn draw_player(
+    player: Query<(&Transform, Option<&TeleportState>), With<Player>>,
+    mut painter: ShapePainter,
+) {
+    for (transform, teleporting) in player.iter() {
+        painter.transform = *transform;
         painter.color = crate::ui::colors::PRIMARY_COLOR;
         painter.circle(10.);
+
+        let distance = if let Some(TeleportState::GettingReady(distance, is_valid)) = teleporting {
+            if !is_valid {
+                painter.color = crate::ui::colors::BORDER_COLOR;
+            }
+            distance + 10.
+        } else {
+            10.
+        };
+        painter.translate(Vec3::X * distance);
+        painter.circle(3.);
     }
 }
 
@@ -174,5 +210,103 @@ fn draw_shadow(shadow: Query<(&Transform, &Shadow)>, mut painter: ShapePainter) 
     for (trasnform, shadow) in shadow.iter() {
         painter.set_translation(trasnform.translation);
         painter.circle(shadow.radius);
+    }
+}
+
+fn teleport_control(
+    players: Query<Entity, With<Player>>,
+    teleport_states: Query<(Entity, &TeleportState, &Transform), With<Player>>,
+    shadows: Query<(&GlobalTransform, &Shadow)>,
+    mut commands: Commands,
+    teleport: Res<Input<KeyCode>>,
+) {
+    if teleport.just_pressed(KeyCode::Space) {
+        for player in players.iter() {
+            commands
+                .entity(player)
+                .insert(TeleportState::GettingReady(0., false));
+        }
+    } else if teleport.just_released(KeyCode::Space) {
+        for (entity, teleport_state, transform) in teleport_states.iter() {
+            let dist = match &teleport_state {
+                TeleportState::GettingReady(dist, true) => Some(*dist),
+                _ => None,
+            };
+            if let Some(dist) = dist {
+                let next_position = transform.transform_point(Vec3::X * dist);
+
+                let shrink = Tween::new(
+                    EaseFunction::ExponentialIn,
+                    Duration::from_secs_f32(0.1),
+                    TransformScaleLens {
+                        start: transform.scale,
+                        end: Vec3::ONE * 0.1,
+                    },
+                );
+
+                let grow = Tween::new(
+                    EaseFunction::ExponentialOut,
+                    Duration::from_secs_f32(0.1),
+                    TransformScaleLens {
+                        start: Vec3::ONE * 0.1,
+                        end: Vec3::ONE,
+                    },
+                )
+                .with_completed_event(TELEPORT_COMPLETED_EVENT);
+
+                let movement = Tween::new(
+                    EaseFunction::QuadraticInOut,
+                    Duration::from_secs_f32(0.4),
+                    TransformPositionLens {
+                        start: transform.translation,
+                        end: next_position,
+                    },
+                );
+
+                let seq = shrink.then(movement).then(grow);
+
+                commands
+                    .entity(entity)
+                    .insert((TeleportState::Teleporting, Animator::new(seq)));
+            } else {
+                commands.entity(entity).remove::<TeleportState>();
+            }
+        }
+    } else if teleport.pressed(KeyCode::Space) {
+        for (entity, teleport_state, transform) in teleport_states.iter() {
+            if let TeleportState::GettingReady(dist, _) = teleport_state {
+                let dist = *dist;
+                let dist = if dist >= 200. { 200. } else { dist + 5. };
+
+                let next_position = transform.transform_point(Vec3::X * dist);
+                let valid = shadows.iter().any(|(transform, shadow)| {
+                    let position = transform.translation();
+                    let distance = position.distance(next_position);
+                    distance < shadow.radius
+                });
+                commands
+                    .entity(entity)
+                    .insert(TeleportState::GettingReady(dist, valid));
+            }
+        }
+    }
+}
+
+const TELEPORT_COMPLETED_EVENT: u64 = 22;
+
+fn clear_teleport(
+    players: Query<Entity, With<Player>>,
+    mut event: EventReader<TweenCompleted>,
+    mut commands: Commands,
+) {
+    for event in event.iter() {
+        if event.user_data == TELEPORT_COMPLETED_EVENT {
+            if let Ok(player) = players.get(event.entity) {
+                commands
+                    .entity(player)
+                    .remove::<Animator<Transform>>()
+                    .remove::<TeleportState>();
+            }
+        }
     }
 }

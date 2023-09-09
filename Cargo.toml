@@ -20,7 +20,8 @@ bevy-inspector-egui = "*"
 serde = "*"
 bevy_turborand = { version = "0.6", features = ["rand"] }
 bevy-ui-navigation = "0.31.0"
-
+bevy_tweening = "*"
+bevy-sequential-actions = "*"
 dexterous_developer = "0.0.9"
 
 [lib]
