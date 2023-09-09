@@ -3,7 +3,7 @@ mod game_over;
 mod game_state;
 mod pause_screen;
 
-use std::{default, time::Duration};
+use std::time::Duration;
 
 use bevy::{
     audio::{Volume, VolumeLevel},
@@ -86,7 +86,7 @@ enum TeleportState {
 }
 
 fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<GlobalRng>) {
-    let mut rng = rng.get_mut();
+    let rng = rng.get_mut();
     commands.insert_resource(ClearColor(DEFAULT_CLEAR));
     commands.insert_resource(DEFAULT_AMBIENT);
     commands
