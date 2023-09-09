@@ -1,3 +1,3 @@
 fn main() {
-    game_lib::bevy_main();
+    game::bevy_main();
 }

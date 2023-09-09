@@ -24,11 +24,10 @@ bevy-ui-navigation = "0.31.0"
 dexterous_developer = "0.0.9"
 
 [lib]
-name = "game_lib"
 path = "src/lib.rs"
 crate-type = ["rlib", "dylib"]
 
 
 [[bin]]
-name = "game"
+name = "crossroad-blues"
 path = "src/main.rs"
