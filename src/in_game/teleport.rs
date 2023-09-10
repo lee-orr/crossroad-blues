@@ -1,12 +1,15 @@
 use std::time::Duration;
 
-use super::actions::*;
 use super::player::*;
-use super::shadow::Shadow;
+use super::shadow::InShadow;
+use bevy::ecs::query::Has;
 use bevy::prelude::*;
 use bevy_tweening::lens::*;
 use bevy_tweening::*;
-use leafwing_input_manager::prelude::ActionState;
+use bevy_vector_shapes::prelude::ShapePainter;
+use bevy_vector_shapes::shapes::DiscPainter;
+
+use seldom_state::trigger::Done;
 
 #[derive(Component)]
 pub struct CanTeleport {
@@ -19,91 +22,93 @@ impl Default for CanTeleport {
     }
 }
 
-#[derive(Debug, Component)]
-pub enum TeleportState {
-    GettingReady(f32, bool),
-    Teleporting,
-}
+#[derive(Debug, Component, Clone)]
+pub struct TeleportationTarget;
 
-pub fn teleport_control(
-    players: Query<(Entity, &ActionState<PlayerAction>), With<Player>>,
-    teleport_states: Query<(&TeleportState, &Transform, &CanTeleport), With<Player>>,
-    shadows: Query<(&GlobalTransform, &Shadow)>,
+#[derive(Debug, Component, Clone)]
+#[component(storage = "SparseSet")]
+pub struct Teleporting;
+
+pub fn trigger_teleport(
+    targets: Query<&Transform, (With<InShadow>, With<TeleportationTarget>)>,
+    teleporters: Query<
+        (Entity, &Children, &Transform),
+        (With<Teleporting>, Without<Animator<Transform>>),
+    >,
     mut commands: Commands,
 ) {
-    for (entity, teleport) in players.iter() {
-        if teleport.just_pressed(PlayerAction::Teleport) {
-            commands
-                .entity(entity)
-                .insert(TeleportState::GettingReady(0., false));
-        } else if teleport.just_released(PlayerAction::Teleport) {
-            if let Ok((teleport_state, transform, _)) = teleport_states.get(entity) {
-                let dist = match &teleport_state {
-                    TeleportState::GettingReady(dist, true) => Some(*dist),
-                    _ => None,
-                };
-                if let Some(dist) = dist {
-                    let next_position = transform.transform_point(Vec3::X * dist);
+    for (teleporter, children, transform) in teleporters.iter() {
+        let Some(target) = children.iter().find_map(|entity| targets.get(*entity).ok()) else {
+            commands.entity(teleporter).insert(Done::Success);
+            continue;
+        };
 
-                    let shrink = Tween::new(
-                        EaseFunction::ExponentialIn,
-                        Duration::from_secs_f32(0.1),
-                        TransformScaleLens {
-                            start: transform.scale,
-                            end: Vec3::ONE * 0.1,
-                        },
-                    );
+        let next_position = transform.transform_point(target.translation);
 
-                    let grow = Tween::new(
-                        EaseFunction::ExponentialOut,
-                        Duration::from_secs_f32(0.1),
-                        TransformScaleLens {
-                            start: Vec3::ONE * 0.1,
-                            end: Vec3::ONE,
-                        },
-                    )
-                    .with_completed_event(TELEPORT_COMPLETED_EVENT);
+        let shrink = Tween::new(
+            EaseFunction::ExponentialIn,
+            Duration::from_secs_f32(0.1),
+            TransformScaleLens {
+                start: transform.scale,
+                end: Vec3::ONE * 0.1,
+            },
+        );
 
-                    let movement = Tween::new(
-                        EaseFunction::QuadraticInOut,
-                        Duration::from_secs_f32(0.4),
-                        TransformPositionLens {
-                            start: transform.translation,
-                            end: next_position,
-                        },
-                    );
+        let grow = Tween::new(
+            EaseFunction::ExponentialOut,
+            Duration::from_secs_f32(0.1),
+            TransformScaleLens {
+                start: Vec3::ONE * 0.1,
+                end: Vec3::ONE,
+            },
+        )
+        .with_completed_event(TELEPORT_COMPLETED_EVENT);
 
-                    let seq = shrink.then(movement).then(grow);
+        let movement = Tween::new(
+            EaseFunction::QuadraticInOut,
+            Duration::from_secs_f32(0.4),
+            TransformPositionLens {
+                start: transform.translation,
+                end: next_position,
+            },
+        );
 
-                    commands
-                        .entity(entity)
-                        .insert((TeleportState::Teleporting, Animator::new(seq)));
-                } else {
-                    commands.entity(entity).remove::<TeleportState>();
-                }
-            }
-        } else if teleport.pressed(PlayerAction::Teleport) {
-            if let Ok((TeleportState::GettingReady(dist, _), transform, can_teleport)) =
-                teleport_states.get(entity)
-            {
-                let dist = *dist;
-                let dist = if dist >= can_teleport.max_distance {
-                    can_teleport.max_distance
-                } else {
-                    dist + 5.
-                };
+        let seq = shrink.then(movement).then(grow);
 
-                let next_position = transform.transform_point(Vec3::X * dist);
-                let valid = shadows.iter().any(|(transform, shadow)| {
-                    let position = transform.translation();
-                    let distance = position.distance(next_position);
-                    distance < shadow.radius
-                });
-                commands
-                    .entity(entity)
-                    .insert(TeleportState::GettingReady(dist, valid));
-            }
-        }
+        commands.entity(teleporter).insert(Animator::new(seq));
+    }
+}
+
+pub fn clear_teleportation_targets(
+    targets: Query<Entity, With<TeleportationTarget>>,
+    teleporters: Query<(Entity, &Children), With<Teleporting>>,
+    mut commands: Commands,
+) {
+    for (_teleporter, children) in teleporters.iter() {
+        let Some(target) = children.iter().find_map(|entity| targets.get(*entity).ok()) else {
+            continue;
+        };
+        commands.entity(target).despawn_recursive();
+    }
+}
+
+pub fn target_teleportation(
+    mut targets: Query<(&Parent, &mut Transform), With<TeleportationTarget>>,
+    parents: Query<&CanTeleport, With<Children>>,
+) {
+    for (parent, mut target) in targets.iter_mut() {
+        let Ok(parent) = parents.get(parent.get()) else {
+            continue;
+        };
+
+        let current_dist = target.translation.length();
+        let dist = if current_dist > parent.max_distance {
+            parent.max_distance
+        } else {
+            current_dist + 5.
+        };
+
+        target.translation = Vec3::X * dist;
     }
 }
 
@@ -120,8 +125,23 @@ pub fn clear_teleport(
                 commands
                     .entity(player)
                     .remove::<Animator<Transform>>()
-                    .remove::<TeleportState>();
+                    .insert(Done::Success);
             }
         }
+    }
+}
+
+pub fn draw_teleportation_target(
+    target: Query<(&GlobalTransform, Has<InShadow>), With<TeleportationTarget>>,
+    mut painter: ShapePainter,
+) {
+    for (transform, in_shadow) in target.iter() {
+        painter.transform = Transform::from_translation(transform.translation());
+        painter.color = if in_shadow {
+            crate::ui::colors::PRIMARY_COLOR
+        } else {
+            crate::ui::colors::BAD_COLOR
+        };
+        painter.circle(3.);
     }
 }

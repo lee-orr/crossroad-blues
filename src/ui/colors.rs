@@ -14,6 +14,8 @@ pub const PRIMARY_COLOR_FOCUSED: Color = PRIMARY_COLOR_PRIORITIZED;
 pub const PRIMARY_COLOR_ACTIVE: Color = PRIMARY_COLOR_PRIORITIZED;
 pub const PRIMARY_COLOR_BLOCKED: Color = Color::rgb(0.71, 0.6, 0.48);
 
+pub const BAD_COLOR: Color = Color::rgb(0.93, 0.27, 0.27);
+
 pub const DEFAULT_AMBIENT: AmbientLight = AmbientLight {
     color: Color::rgb(1., 1., 1.),
     brightness: 0.26,

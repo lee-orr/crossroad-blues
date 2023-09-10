@@ -1,7 +1,4 @@
 use bevy::prelude::*;
-use leafwing_input_manager::prelude::ActionState;
-
-use super::{actions::PlayerAction, player::Player, teleport::TeleportState};
 
 #[derive(Component)]
 pub struct CanMove {
@@ -18,35 +15,37 @@ impl Default for CanMove {
     }
 }
 
-pub fn move_player(
-    mut player: Query<
-        (
-            &mut Transform,
-            Option<&TeleportState>,
-            &ActionState<PlayerAction>,
-            &CanMove,
-        ),
-        With<Player>,
-    >,
-) {
-    for (mut transform, teleport, movement, can_move) in player.iter_mut() {
-        let vertical = if movement.pressed(PlayerAction::MoveForward) {
-            1.
-        } else if movement.pressed(PlayerAction::MoveBack) {
-            -1.
-        } else {
-            0.
+#[derive(Component, Clone, Default)]
+#[component(storage = "SparseSet")]
+pub struct Moving(pub MoveDirection, pub TurnDirection);
+
+#[derive(Clone, Default, Copy, Eq, PartialEq)]
+pub enum MoveDirection {
+    #[default]
+    Still,
+    Forward,
+    Back,
+}
+#[derive(Clone, Default, Copy, Eq, PartialEq)]
+pub enum TurnDirection {
+    #[default]
+    Still,
+    Left,
+    Right,
+}
+
+pub fn movement(mut mover: Query<(&mut Transform, &Moving, &CanMove)>) {
+    for (mut transform, movement, can_move) in mover.iter_mut() {
+        let vertical = match movement.0 {
+            MoveDirection::Still => 0.,
+            MoveDirection::Forward => 1.,
+            MoveDirection::Back => -1.,
         };
-        let horizontal = if movement.pressed(PlayerAction::TurnRight) {
-            -1.
-        } else if movement.pressed(PlayerAction::TurnLeft) {
-            1.
-        } else {
-            0.
+        let horizontal = match movement.1 {
+            TurnDirection::Still => 0.,
+            TurnDirection::Left => 1.,
+            TurnDirection::Right => -1.,
         };
-        if matches!(teleport, Some(TeleportState::Teleporting)) {
-            continue;
-        }
         transform.rotate_z(horizontal * can_move.turn_speed);
 
         let translation = transform.transform_point(Vec3::X * vertical * can_move.move_speed);

@@ -23,6 +23,7 @@ bevy-ui-navigation = "0.31.0"
 bevy_tweening = "*"
 bevy-sequential-actions = "*"
 dexterous_developer = "0.0.9"
+big-brain = "0.18"
 seldom_state = { version = "0.7", features = ["leafwing_input"] }
 
 [lib]

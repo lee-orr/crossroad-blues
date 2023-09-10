@@ -5,18 +5,19 @@ mod game_state;
 mod movement;
 mod pause_screen;
 mod player;
+mod schedule;
 mod shadow;
 mod teleport;
 
 use bevy::{
     audio::{Volume, VolumeLevel},
-    ecs::schedule::ScheduleLabel,
     input::common_conditions::input_toggle_active,
     prelude::*,
 };
 use bevy_inspector_egui::quick::StateInspectorPlugin;
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 
+use big_brain::BigBrainPlugin;
 use leafwing_input_manager::prelude::InputManagerPlugin;
 
 use crate::{
@@ -33,6 +34,7 @@ use self::{
     movement::*,
     pause_screen::PausePlugin,
     player::*,
+    schedule::*,
     shadow::*,
     teleport::*,
 };
@@ -43,17 +45,21 @@ pub struct InGamePlugin;
 
 impl Plugin for InGamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(InputManagerPlugin::<PlayerAction>::default())
-            .add_plugins((PausePlugin, GameOverPlugin, GameCompletedPlugin))
-            .add_state::<GameState>()
-            .register_type::<GameState>()
-            .add_plugins(
-                StateInspectorPlugin::<GameState>::default()
-                    .run_if(input_toggle_active(false, KeyCode::F1)),
-            )
-            .add_systems(OnExit(AppState::InGame), (exit, clear_audio))
-            .add_systems(Update, (enable_audio).run_if(in_state(AppState::InGame)))
-            .setup_reloadable_elements::<reloadable>();
+        app.add_plugins((
+            InputManagerPlugin::<PlayerAction>::default(),
+            BigBrainPlugin::new(InGamePreUpdate),
+            seldom_state::StateMachinePlugin,
+        ))
+        .add_plugins((PausePlugin, GameOverPlugin, GameCompletedPlugin))
+        .add_state::<GameState>()
+        .register_type::<GameState>()
+        .add_plugins(
+            StateInspectorPlugin::<GameState>::default()
+                .run_if(input_toggle_active(false, KeyCode::F1)),
+        )
+        .add_systems(OnExit(AppState::InGame), (exit, clear_audio))
+        .add_systems(Update, (enable_audio).run_if(in_state(AppState::InGame)))
+        .setup_reloadable_elements::<reloadable>();
     }
 }
 
@@ -65,17 +71,27 @@ fn reloadable(app: &mut ReloadableAppContents) {
             run_in_game_update.run_if(in_state(PauseState::None)),
         )
         .add_systems(
-            InGameUpdate,
-            (move_player, teleport_control, clear_teleport),
+            PreUpdate,
+            run_in_game_pre_update.run_if(in_state(PauseState::None)),
         )
-        .add_systems(PostUpdate, (draw_player, draw_shadow));
+        .add_systems(InGamePreUpdate, (move_player, player_target_teleportation))
+        .add_systems(
+            InGameUpdate,
+            (
+                (movement, target_teleportation).chain(),
+                (trigger_teleport, clear_teleportation_targets).chain(),
+                clear_teleport,
+                check_for_shadow,
+            ),
+        )
+        .add_systems(
+            PostUpdate,
+            (draw_player, draw_shadow, draw_teleportation_target),
+        );
 }
 
 #[derive(Component)]
 struct InGame;
-
-#[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct InGameUpdate;
 
 fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<GlobalRng>) {
     let rng = rng.get_mut();
@@ -142,4 +158,8 @@ fn enable_audio(audio: Query<&AudioSink>) {
 
 fn run_in_game_update(world: &mut World) {
     let _ = world.try_run_schedule(InGameUpdate);
+}
+
+fn run_in_game_pre_update(world: &mut World) {
+    let _ = world.try_run_schedule(InGamePreUpdate);
 }
