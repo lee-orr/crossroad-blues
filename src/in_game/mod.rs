@@ -25,7 +25,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     assets::MainGameAssets,
-    in_game::souls::sun_sensitivity,
+    in_game::souls::{sun_sensitivity, take_damage},
     ui::colors::{DEFAULT_AMBIENT, DEFAULT_CLEAR},
 };
 
@@ -39,6 +39,7 @@ use self::{
     player::*,
     schedule::*,
     shadow::*,
+    souls::{Damage, Death},
     teleport::*,
 };
 use dexterous_developer::{
@@ -56,6 +57,8 @@ impl Plugin for InGamePlugin {
         .add_plugins((PausePlugin, GameOverPlugin, GameCompletedPlugin))
         .add_state::<GameState>()
         .register_type::<GameState>()
+        .add_event::<Damage>()
+        .add_event::<Death>()
         .add_plugins(
             StateInspectorPlugin::<GameState>::default()
                 .run_if(input_toggle_active(false, KeyCode::F1)),
@@ -68,7 +71,7 @@ impl Plugin for InGamePlugin {
 
 #[dexterous_developer_setup(in_game)]
 fn reloadable(app: &mut ReloadableAppContents) {
-    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, (setup, setup_souls_ui))
+    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, (setup, setup_souls_ui).chain())
         .add_systems(
             Update,
             run_in_game_update.run_if(in_state(PauseState::None)),
@@ -87,7 +90,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
                 (movement, target_teleportation).chain(),
                 (trigger_teleport, clear_teleportation_targets).chain(),
                 clear_teleport,
-                sun_sensitivity,
+                (sun_sensitivity, take_damage).chain(),
             ),
         )
         .add_systems(
@@ -97,6 +100,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
                 draw_shadow,
                 draw_teleportation_target,
                 draw_souls_ui,
+                end_game,
             ),
         );
 }

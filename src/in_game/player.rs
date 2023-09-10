@@ -4,9 +4,10 @@ use crate::ui::classes::*;
 
 use super::{
     actions::{input_manager, PlayerAction},
+    game_state::GameState,
     movement::{CanMove, Moving},
     shadow::{CheckForShadow, InShadow},
-    souls::{MaxSouls, Souls, SunSensitivity},
+    souls::{Death, MaxSouls, Souls, SunSensitivity},
     teleport::{CanTeleport, TeleportationTarget, TeleportationTargetDirection, Teleporting},
     InGame,
 };
@@ -146,5 +147,18 @@ pub fn draw_souls_ui(
         };
         let ratio = souls.0.div(max_souls.0).mul(100.);
         style.width = Val::Percent(ratio);
+    }
+}
+
+pub fn end_game(
+    players: Query<Entity, With<Player>>,
+    mut event: EventReader<Death>,
+    mut commands: Commands,
+) {
+    for death in event.iter() {
+        let Ok(_player) = players.get(death.entity) else {
+            continue;
+        };
+        commands.insert_resource(NextState(Some(GameState::Failed)));
     }
 }

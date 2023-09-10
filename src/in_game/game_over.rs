@@ -24,14 +24,14 @@ impl Plugin for GameOverPlugin {
 }
 #[dexterous_developer_setup(game_over)]
 fn reloadable(app: &mut ReloadableAppContents) {
-    app.reset_setup_in_state::<Screen, _, _>(GameState::Complete, setup)
+    app.reset_setup_in_state::<Screen, _, _>(GameState::Failed, setup)
         .add_systems(
             Update,
             (
                 process_keyboard_input,
                 (focused_button_activated.pipe(process_input)),
             )
-                .run_if(in_state(GameState::Complete)),
+                .run_if(in_state(GameState::Failed)),
         );
 }
 
