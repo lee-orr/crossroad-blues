@@ -74,14 +74,16 @@ fn reloadable(app: &mut ReloadableAppContents) {
             PreUpdate,
             run_in_game_pre_update.run_if(in_state(PauseState::None)),
         )
-        .add_systems(InGamePreUpdate, (move_player, player_target_teleportation))
+        .add_systems(
+            InGamePreUpdate,
+            (move_player, player_target_teleportation, check_for_shadow),
+        )
         .add_systems(
             InGameUpdate,
             (
                 (movement, target_teleportation).chain(),
                 (trigger_teleport, clear_teleportation_targets).chain(),
                 clear_teleport,
-                check_for_shadow,
             ),
         )
         .add_systems(
