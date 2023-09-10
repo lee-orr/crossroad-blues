@@ -7,12 +7,14 @@ mod pause_screen;
 mod player;
 mod schedule;
 mod shadow;
+mod souls;
 mod teleport;
 
 use bevy::{
     audio::{Volume, VolumeLevel},
     input::common_conditions::input_toggle_active,
     prelude::*,
+    window::CursorGrabMode,
 };
 use bevy_inspector_egui::quick::StateInspectorPlugin;
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
@@ -23,6 +25,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     assets::MainGameAssets,
+    in_game::souls::sun_sensitivity,
     ui::colors::{DEFAULT_AMBIENT, DEFAULT_CLEAR},
 };
 
@@ -65,7 +68,7 @@ impl Plugin for InGamePlugin {
 
 #[dexterous_developer_setup(in_game)]
 fn reloadable(app: &mut ReloadableAppContents) {
-    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, setup)
+    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, (setup, setup_souls_ui))
         .add_systems(
             Update,
             run_in_game_update.run_if(in_state(PauseState::None)),
@@ -84,18 +87,34 @@ fn reloadable(app: &mut ReloadableAppContents) {
                 (movement, target_teleportation).chain(),
                 (trigger_teleport, clear_teleportation_targets).chain(),
                 clear_teleport,
+                sun_sensitivity,
             ),
         )
         .add_systems(
             PostUpdate,
-            (draw_player, draw_shadow, draw_teleportation_target),
+            (
+                draw_player,
+                draw_shadow,
+                draw_teleportation_target,
+                draw_souls_ui,
+            ),
         );
 }
 
 #[derive(Component)]
 struct InGame;
 
-fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<GlobalRng>) {
+fn setup(
+    mut commands: Commands,
+    assets: Res<MainGameAssets>,
+    mut rng: ResMut<GlobalRng>,
+    mut windows: Query<&mut Window>,
+) {
+    for mut window in windows.iter_mut() {
+        window.cursor.visible = false;
+        window.cursor.grab_mode = CursorGrabMode::Confined;
+    }
+
     let rng = rng.get_mut();
     commands.insert_resource(ClearColor(DEFAULT_CLEAR));
     commands.insert_resource(DEFAULT_AMBIENT);
@@ -136,11 +155,19 @@ fn setup(mut commands: Commands, assets: Res<MainGameAssets>, mut rng: ResMut<Gl
         });
 }
 
-fn exit(mut commands: Commands, query: Query<Entity, With<InGame>>) {
+fn exit(
+    mut commands: Commands,
+    query: Query<Entity, With<InGame>>,
+    mut windows: Query<&mut Window>,
+) {
     commands.insert_resource(NextState(Some(GameState::None)));
     commands.insert_resource(NextState(Some(PauseState::None)));
     for item in query.iter() {
         commands.entity(item).despawn_recursive();
+    }
+    for mut window in windows.iter_mut() {
+        window.cursor.visible = true;
+        window.cursor.grab_mode = CursorGrabMode::None;
     }
 }
 

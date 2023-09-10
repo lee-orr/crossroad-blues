@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, ui::FocusPolicy};
 use bevy_ui_navigation::prelude::FocusState;
 
 use crate::ui::intermediary_node_bundles::IntermediaryNodeBundleHandler;
@@ -117,4 +117,37 @@ pub fn span(b: &mut dyn IntermediaryNodeBundleHandler) {
     b.style().flex_direction = FlexDirection::Row;
     b.style().justify_content = JustifyContent::FlexStart;
     b.style().align_items = AlignItems::Center;
+}
+
+pub fn soul_bar_root(b: &mut NodeBundle) {
+    b.style.width = Val::Percent(100.);
+    b.style.height = Val::Percent(100.);
+    b.style.display = Display::Flex;
+    b.style.flex_direction = FlexDirection::Column;
+    b.style.justify_content = JustifyContent::FlexStart;
+    b.style.align_items = AlignItems::FlexStart;
+    b.style.position_type = PositionType::Absolute;
+    b.style.left = Val::Px(0.);
+    b.style.top = Val::Px(0.);
+    b.focus_policy = FocusPolicy::Pass;
+    b.style.padding = UiRect::all(Val::Px(10.));
+}
+
+pub fn soul_bar_container(b: &mut NodeBundle) {
+    b.style.width = Val::Vw(10.);
+    b.style.height = Val::Px(20.);
+    b.style.display = Display::Flex;
+    b.style.flex_direction = FlexDirection::Row;
+    b.style.justify_content = JustifyContent::FlexStart;
+    b.style.align_items = AlignItems::Stretch;
+    b.background_color.0 = colors::BORDER_COLOR;
+    b.focus_policy = FocusPolicy::Pass;
+}
+
+pub fn soul_bar(b: &mut NodeBundle) {
+    b.background_color.0 = colors::PRIMARY_COLOR;
+    b.style.height = Val::Percent(100.);
+    b.style.flex_grow = 0.;
+    b.style.flex_shrink = 0.;
+    b.focus_policy = FocusPolicy::Pass;
 }

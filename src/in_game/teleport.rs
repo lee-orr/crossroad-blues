@@ -23,7 +23,11 @@ impl Default for CanTeleport {
 }
 
 #[derive(Debug, Component, Clone)]
-pub struct TeleportationTarget;
+pub struct TeleportationTarget(pub Entity);
+
+#[derive(Debug, Component, Clone)]
+#[component(storage = "SparseSet")]
+pub struct TeleportationTargetDirection(pub Vec2, pub Entity);
 
 #[derive(Debug, Component, Clone)]
 #[component(storage = "SparseSet")]
@@ -32,18 +36,31 @@ pub struct Teleporting;
 pub fn trigger_teleport(
     targets: Query<&Transform, (With<InShadow>, With<TeleportationTarget>)>,
     teleporters: Query<
-        (Entity, &Children, &Transform),
+        (Entity, &TeleportationTargetDirection, &Transform),
         (With<Teleporting>, Without<Animator<Transform>>),
     >,
     mut commands: Commands,
 ) {
-    for (teleporter, children, transform) in teleporters.iter() {
-        let Some(target) = children.iter().find_map(|entity| targets.get(*entity).ok()) else {
-            commands.entity(teleporter).insert(Done::Success);
+    for (teleporter, target, transform) in teleporters.iter() {
+        println!("Handling teleport");
+        if let Some(e) = commands.get_entity(target.1) {
+            e.despawn_recursive();
+        } else {
+            warn!("Target doesn't exist");
+            commands
+                .entity(teleporter)
+                .remove::<TeleportationTargetDirection>()
+                .insert(Done::Success);
+        }
+        let Some(target) = targets.get(target.1).ok() else {
+            commands
+                .entity(teleporter)
+                .remove::<TeleportationTargetDirection>()
+                .insert(Done::Success);
             continue;
         };
 
-        let next_position = transform.transform_point(target.translation);
+        let next_position = target.translation;
 
         let shrink = Tween::new(
             EaseFunction::ExponentialIn,
@@ -75,40 +92,63 @@ pub fn trigger_teleport(
 
         let seq = shrink.then(movement).then(grow);
 
-        commands.entity(teleporter).insert(Animator::new(seq));
+        commands
+            .entity(teleporter)
+            .remove::<TeleportationTargetDirection>()
+            .insert(Animator::new(seq));
     }
 }
 
 pub fn clear_teleportation_targets(
-    targets: Query<Entity, With<TeleportationTarget>>,
-    teleporters: Query<(Entity, &Children), With<Teleporting>>,
+    teleporters: Query<&TeleportationTargetDirection, With<Teleporting>>,
+    stuck_teleporters: Query<Entity, (With<Teleporting>, Without<Animator<Transform>>)>,
     mut commands: Commands,
 ) {
-    for (_teleporter, children) in teleporters.iter() {
-        let Some(target) = children.iter().find_map(|entity| targets.get(*entity).ok()) else {
-            continue;
-        };
-        commands.entity(target).despawn_recursive();
+    for children in teleporters.iter() {
+        if let Some(entity) = commands.get_entity(children.1) {
+            entity.despawn_recursive()
+        }
+    }
+
+    for stuck_teleporter in stuck_teleporters.iter() {
+        commands.entity(stuck_teleporter).insert(Done::Success);
     }
 }
 
 pub fn target_teleportation(
-    mut targets: Query<(&Parent, &mut Transform), With<TeleportationTarget>>,
-    parents: Query<&CanTeleport, With<Children>>,
+    mut targets: Query<(&TeleportationTarget, &mut Transform)>,
+    parents: Query<(
+        &CanTeleport,
+        &TeleportationTargetDirection,
+        &GlobalTransform,
+    )>,
 ) {
     for (parent, mut target) in targets.iter_mut() {
-        let Ok(parent) = parents.get(parent.get()) else {
+        let Ok((parent, target_direction, parent_transform)) = parents.get(parent.0) else {
             continue;
         };
 
-        let current_dist = target.translation.length();
-        let dist = if current_dist > parent.max_distance {
-            parent.max_distance
+        let parent_position = parent_transform.translation();
+
+        let direction = Vec3::new(target_direction.0.x, target_direction.0.y, 0.);
+
+        let direction = if direction.length_squared() < 0.1 {
+            Vec3::ZERO
         } else {
-            current_dist + 5.
+            direction
         };
 
-        target.translation = Vec3::X * dist;
+        let translation = target.translation;
+        let translation = translation + direction;
+        let current_dist = translation.distance(parent_position);
+        let translation = if current_dist > parent.max_distance {
+            let direction = (translation - parent_position).normalize_or_zero();
+            parent_position + direction.normalize_or_zero() * parent.max_distance
+        } else {
+            translation
+        };
+
+        target.translation = translation;
     }
 }
 

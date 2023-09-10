@@ -9,47 +9,28 @@ pub struct CanMove {
 impl Default for CanMove {
     fn default() -> Self {
         Self {
-            move_speed: 3.,
-            turn_speed: 0.1,
+            move_speed: 100.,
+            turn_speed: 7.,
         }
     }
 }
 
 #[derive(Component, Clone, Default)]
 #[component(storage = "SparseSet")]
-pub struct Moving(pub MoveDirection, pub TurnDirection);
+pub struct Moving(pub Vec2);
 
-#[derive(Clone, Default, Copy, Eq, PartialEq)]
-pub enum MoveDirection {
-    #[default]
-    Still,
-    Forward,
-    Back,
-}
-#[derive(Clone, Default, Copy, Eq, PartialEq)]
-pub enum TurnDirection {
-    #[default]
-    Still,
-    Left,
-    Right,
-}
-
-pub fn movement(mut mover: Query<(&mut Transform, &Moving, &CanMove)>) {
+pub fn movement(mut mover: Query<(&mut Transform, &Moving, &CanMove)>, time: Res<Time>) {
+    let delta = time.delta_seconds();
     for (mut transform, movement, can_move) in mover.iter_mut() {
-        let vertical = match movement.0 {
-            MoveDirection::Still => 0.,
-            MoveDirection::Forward => 1.,
-            MoveDirection::Back => -1.,
-        };
-        let horizontal = match movement.1 {
-            TurnDirection::Still => 0.,
-            TurnDirection::Left => 1.,
-            TurnDirection::Right => -1.,
-        };
-        transform.rotate_z(horizontal * can_move.turn_speed);
+        let direction = Vec3::new(movement.0.x, movement.0.y, 0.);
+        if direction.length_squared() < 0.1 {
+            continue;
+        }
+        let translation = direction * can_move.move_speed * delta;
 
-        let translation = transform.transform_point(Vec3::X * vertical * can_move.move_speed);
+        transform.translation += translation;
 
-        transform.translation = translation;
+        let angle = direction.y.atan2(direction.x);
+        transform.rotation = Quat::from_rotation_z(angle);
     }
 }
