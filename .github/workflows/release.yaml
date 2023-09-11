@@ -10,7 +10,7 @@ env:
   # update with the name of the main binary
   add_binaries_to_github_release: github.ref_type == 'tag' && github.ref_name && true
   release_version: ${{ (github.ref_type == 'tag' && github.ref_name) || format('{0}_{1}', github.ref_name, github.run_number) }}
-  itch_target: crossroad-blues
+  itch_target: lee-orr/crossroad-blues
 
 concurrency:
   group: release
