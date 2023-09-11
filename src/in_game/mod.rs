@@ -25,7 +25,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     assets::MainGameAssets,
-    in_game::souls::{souls_plugin, sun_sensitivity, take_damage},
+    in_game::souls::souls_plugin,
     ui::colors::{DEFAULT_AMBIENT, DEFAULT_CLEAR},
 };
 
