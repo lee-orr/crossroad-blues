@@ -22,41 +22,26 @@ impl Default for CanTeleport {
     }
 }
 
-#[derive(Debug, Component, Clone)]
-pub struct TeleportationTarget(pub Entity);
-
-#[derive(Debug, Component, Clone)]
+#[derive(Component, Debug, Clone)]
 #[component(storage = "SparseSet")]
-pub struct TeleportationTargetDirection(pub Vec2, pub Entity);
+pub struct TargetInRange;
 
 #[derive(Debug, Component, Clone)]
 #[component(storage = "SparseSet")]
 pub struct Teleporting;
 
 pub fn trigger_teleport(
-    targets: Query<&Transform, (With<InShadow>, With<TeleportationTarget>)>,
+    targets: Query<&Transform, (With<TargetInRange>, With<InShadow>, With<PlayerTarget>)>,
     teleporters: Query<
-        (Entity, &TeleportationTargetDirection, &Transform),
+        (Entity, &PlayerTargetReference, &Transform),
         (With<Teleporting>, Without<Animator<Transform>>),
     >,
     mut commands: Commands,
 ) {
     for (teleporter, target, transform) in teleporters.iter() {
         println!("Handling teleport");
-        if let Some(e) = commands.get_entity(target.1) {
-            e.despawn_recursive();
-        } else {
-            warn!("Target doesn't exist");
-            commands
-                .entity(teleporter)
-                .remove::<TeleportationTargetDirection>()
-                .insert(Done::Success);
-        }
-        let Some(target) = targets.get(target.1).ok() else {
-            commands
-                .entity(teleporter)
-                .remove::<TeleportationTargetDirection>()
-                .insert(Done::Success);
+        let Some(target) = targets.get(target.0).ok() else {
+            commands.entity(teleporter).insert(Done::Success);
             continue;
         };
 
@@ -92,63 +77,7 @@ pub fn trigger_teleport(
 
         let seq = shrink.then(movement).then(grow);
 
-        commands
-            .entity(teleporter)
-            .remove::<TeleportationTargetDirection>()
-            .insert(Animator::new(seq));
-    }
-}
-
-pub fn clear_teleportation_targets(
-    teleporters: Query<&TeleportationTargetDirection, With<Teleporting>>,
-    stuck_teleporters: Query<Entity, (With<Teleporting>, Without<Animator<Transform>>)>,
-    mut commands: Commands,
-) {
-    for children in teleporters.iter() {
-        if let Some(entity) = commands.get_entity(children.1) {
-            entity.despawn_recursive()
-        }
-    }
-
-    for stuck_teleporter in stuck_teleporters.iter() {
-        commands.entity(stuck_teleporter).insert(Done::Success);
-    }
-}
-
-pub fn target_teleportation(
-    mut targets: Query<(&TeleportationTarget, &mut Transform)>,
-    parents: Query<(
-        &CanTeleport,
-        &TeleportationTargetDirection,
-        &GlobalTransform,
-    )>,
-) {
-    for (parent, mut target) in targets.iter_mut() {
-        let Ok((parent, target_direction, parent_transform)) = parents.get(parent.0) else {
-            continue;
-        };
-
-        let parent_position = parent_transform.translation();
-
-        let direction = Vec3::new(target_direction.0.x, target_direction.0.y, 0.);
-
-        let direction = if direction.length_squared() < 0.1 {
-            Vec3::ZERO
-        } else {
-            direction
-        };
-
-        let translation = target.translation;
-        let translation = translation + direction;
-        let current_dist = translation.distance(parent_position);
-        let translation = if current_dist > parent.max_distance {
-            let direction = (translation - parent_position).normalize_or_zero();
-            parent_position + direction.normalize_or_zero() * parent.max_distance
-        } else {
-            translation
-        };
-
-        target.translation = translation;
+        commands.entity(teleporter).insert(Animator::new(seq));
     }
 }
 
@@ -171,17 +100,27 @@ pub fn clear_teleport(
     }
 }
 
-pub fn draw_teleportation_target(
-    target: Query<(&GlobalTransform, Has<InShadow>), With<TeleportationTarget>>,
-    mut painter: ShapePainter,
+pub fn validate_teleporation_target(
+    target: Query<(Entity, &GlobalTransform, &PlayerTarget)>,
+    parent: Query<(&GlobalTransform, &CanTeleport), With<PlayerTargetReference>>,
+    mut commands: Commands,
 ) {
-    for (transform, in_shadow) in target.iter() {
-        painter.transform = Transform::from_translation(transform.translation());
-        painter.color = if in_shadow {
-            crate::ui::colors::PRIMARY_COLOR
+    for (target, transform, player_target) in target.iter() {
+        let too_far =
+            if let Ok((parent_transform, parent_can_teleport)) = parent.get(player_target.0) {
+                let max = parent_can_teleport.max_distance;
+                let distance = parent_transform
+                    .translation()
+                    .distance(transform.translation());
+                distance > max
+            } else {
+                true
+            };
+
+        if too_far {
+            commands.entity(target).remove::<TargetInRange>();
         } else {
-            crate::ui::colors::BAD_COLOR
-        };
-        painter.circle(3.);
+            commands.entity(target).insert(TargetInRange);
+        }
     }
 }

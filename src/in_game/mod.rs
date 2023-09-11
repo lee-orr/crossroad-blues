@@ -71,7 +71,7 @@ impl Plugin for InGamePlugin {
 
 #[dexterous_developer_setup(in_game)]
 fn reloadable(app: &mut ReloadableAppContents) {
-    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, (setup, setup_souls_ui).chain())
+    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, setup)
         .add_systems(
             Update,
             run_in_game_update.run_if(in_state(PauseState::None)),
@@ -80,6 +80,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
             PreUpdate,
             run_in_game_pre_update.run_if(in_state(PauseState::None)),
         )
+        .add_systems(PreUpdate, construct_player)
         .add_systems(
             InGamePreUpdate,
             (move_player, player_target_teleportation, check_for_shadow),
@@ -87,10 +88,12 @@ fn reloadable(app: &mut ReloadableAppContents) {
         .add_systems(
             InGameUpdate,
             (
-                (movement, target_teleportation).chain(),
-                (trigger_teleport, clear_teleportation_targets).chain(),
+                (movement, move_target).chain(),
+                (trigger_teleport).chain(),
                 clear_teleport,
                 (sun_sensitivity, take_damage).chain(),
+                setup_souls_ui,
+                validate_teleporation_target,
             ),
         )
         .add_systems(
@@ -98,7 +101,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
             (
                 draw_player,
                 draw_shadow,
-                draw_teleportation_target,
+                draw_target,
                 draw_souls_ui,
                 end_game,
             ),
@@ -137,8 +140,7 @@ fn setup(
                     ..Default::default()
                 },
             });
-
-            p.spawn(construct_player());
+            p.spawn((SpatialBundle::default(), ConstructPlayer));
 
             for _ in 0..5 {
                 let pos = Vec3::new(

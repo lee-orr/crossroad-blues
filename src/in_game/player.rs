@@ -8,7 +8,7 @@ use super::{
     movement::{CanMove, Moving},
     shadow::{CheckForShadow, InShadow},
     souls::{Death, MaxSouls, Souls, SunSensitivity},
-    teleport::{CanTeleport, TeleportationTarget, TeleportationTargetDirection, Teleporting},
+    teleport::{CanTeleport, TargetInRange, Teleporting},
     InGame,
 };
 use bevy::{ecs::query::Has, prelude::*};
@@ -20,26 +20,56 @@ use seldom_state::{
     trigger::{DoneTrigger, JustReleasedTrigger},
 };
 
+#[derive(Component)]
+pub struct ConstructPlayer;
+
 #[derive(Component, Default)]
 pub struct Player;
 
-pub fn construct_player() -> impl bevy::prelude::Bundle {
-    (
-        Name::new("Player"),
-        SpatialBundle::default(),
-        Player,
-        CanTeleport::default(),
-        CanMove::default(),
-        Moving::default(),
-        input_manager(),
-        CheckForShadow,
-        Souls(50.),
-        MaxSouls(50.),
-        SunSensitivity(5.),
-        StateMachine::default()
-            .trans::<Moving>(JustReleasedTrigger(PlayerAction::Teleport), Teleporting)
-            .trans::<Teleporting>(DoneTrigger::Success, Moving::default()),
-    )
+#[derive(Debug, Component, Clone)]
+pub struct PlayerTarget(pub Entity);
+
+#[derive(Debug, Component, Clone)]
+pub struct PlayerTargetReference(pub Entity, pub Vec2);
+
+pub fn construct_player(
+    players: Query<(Entity, &GlobalTransform), With<ConstructPlayer>>,
+    mut commands: Commands,
+) {
+    for (player_id, transform) in players.iter() {
+        let position = transform.translation();
+        let target_id = commands
+            .spawn((
+                InGame,
+                SpatialBundle {
+                    transform: Transform::from_translation(position + Vec3::X * 50.),
+                    ..Default::default()
+                },
+                CheckForShadow,
+                PlayerTarget(player_id),
+            ))
+            .id();
+
+        commands
+            .entity(player_id)
+            .remove::<ConstructPlayer>()
+            .insert((
+                Name::new("Player"),
+                PlayerTargetReference(target_id, Vec2::ZERO),
+                Player,
+                CanTeleport::default(),
+                CanMove::default(),
+                Moving::default(),
+                input_manager(),
+                CheckForShadow,
+                Souls(50.),
+                MaxSouls(50.),
+                SunSensitivity(5.),
+                StateMachine::default()
+                    .trans::<Moving>(JustReleasedTrigger(PlayerAction::Teleport), Teleporting)
+                    .trans::<Teleporting>(DoneTrigger::Success, Moving::default()),
+            ));
+    }
 }
 
 pub fn draw_player(
@@ -76,48 +106,32 @@ pub fn player_target_teleportation(
             Entity,
             &Transform,
             &ActionState<PlayerAction>,
-            Option<&TeleportationTargetDirection>,
+            &PlayerTargetReference,
         ),
         With<Moving>,
     >,
     mut commands: Commands,
 ) {
     for (player, transform, action, target) in player.iter() {
-        if action.just_pressed(PlayerAction::Teleport) {
-            let target = commands
-                .spawn((
-                    InGame,
-                    SpatialBundle {
-                        transform: *transform,
-                        ..Default::default()
-                    },
-                    TeleportationTarget(player),
-                    CheckForShadow,
-                ))
-                .id();
-            commands
-                .entity(player)
-                .insert(TeleportationTargetDirection(Vec2::ZERO, target));
-        } else if action.pressed(PlayerAction::Teleport) {
-            let direction = action
-                .axis_pair(PlayerAction::Target)
-                .map(|v| v.xy())
-                .unwrap_or_default();
-            let Some(target) = target.map(|v| v.1) else {
-                continue;
-            };
-            commands
-                .entity(player)
-                .insert(TeleportationTargetDirection(direction, target));
-        }
+        let direction = action
+            .axis_pair(PlayerAction::Target)
+            .map(|v| v.xy())
+            .unwrap_or_default();
+        commands
+            .entity(player)
+            .insert(PlayerTargetReference(target.0, direction));
     }
 }
 
 pub fn setup_souls_ui(
     player: Query<Entity, With<Player>>,
+    bars: Query<&SoulBar>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
+    if !bars.is_empty() {
+        return;
+    }
     let mut player_soul_bars = vec![];
     let r = root(soul_bar_root, &asset_server, &mut commands, |p| {
         for player in player.iter() {
@@ -160,5 +174,54 @@ pub fn end_game(
             continue;
         };
         commands.insert_resource(NextState(Some(GameState::Failed)));
+    }
+}
+
+pub fn move_target(
+    mut targets: Query<(&PlayerTarget, &mut Transform)>,
+    parents: Query<&PlayerTargetReference>,
+) {
+    for (parent, mut target) in targets.iter_mut() {
+        let Ok(target_direction) = parents.get(parent.0) else {
+            continue;
+        };
+
+        let direction = Vec3::new(target_direction.1.x, target_direction.1.y, 0.);
+
+        let direction = if direction.length_squared() < 0.1 {
+            Vec3::ZERO
+        } else {
+            direction
+        };
+
+        let translation = target.translation;
+        let translation = translation + direction;
+
+        target.translation = translation;
+    }
+}
+
+pub fn draw_target(
+    target: Query<(
+        &GlobalTransform,
+        Has<InShadow>,
+        Has<TargetInRange>,
+        &PlayerTarget,
+    )>,
+    parent: Query<(&GlobalTransform, &CanTeleport), With<PlayerTargetReference>>,
+    mut painter: ShapePainter,
+) {
+    for (transform, in_shadow, target_in_range, player_target) in target.iter() {
+        let too_far = !target_in_range;
+
+        painter.transform = Transform::from_translation(transform.translation());
+        painter.color = if too_far {
+            crate::ui::colors::OVERLAY_COLOR
+        } else if in_shadow {
+            crate::ui::colors::PRIMARY_COLOR
+        } else {
+            crate::ui::colors::BAD_COLOR
+        };
+        painter.circle(3.);
     }
 }
