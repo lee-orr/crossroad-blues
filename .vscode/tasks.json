@@ -11,12 +11,12 @@
         {
             "label": "Watch",
             "type": "shell",
-            "command": "dexterous_developer_cli run"
+            "command": "RUST_LOG=debug dexterous_developer_cli run -p game_dynamic"
         },
         {
             "label": "Serve",
             "type": "shell",
-            "command": "dexterous_developer_cli serve"
+            "command": "dexterous_developer_cli serve -p game_dynamic"
         },
         {
             "label": "Run Wasm",

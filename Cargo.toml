@@ -29,9 +29,12 @@ seldom_state = { version = "0.7", features = ["leafwing_input"] }
 [lib]
 name = "game"
 path = "src/lib.rs"
-crate-type = ["rlib", "dylib"]
+crate-type = ["rlib"]
 
 
 [[bin]]
 name = "crossroad-blues"
 path = "src/main.rs"
+
+[workspace]
+members = ["game_dynamic"]
