@@ -112,7 +112,7 @@ pub fn player_target_teleportation(
     >,
     mut commands: Commands,
 ) {
-    for (player, transform, action, target) in player.iter() {
+    for (player, _transform, action, target) in player.iter() {
         let direction = action
             .axis_pair(PlayerAction::Target)
             .map(|v| v.xy())
@@ -208,10 +208,10 @@ pub fn draw_target(
         Has<TargetInRange>,
         &PlayerTarget,
     )>,
-    parent: Query<(&GlobalTransform, &CanTeleport), With<PlayerTargetReference>>,
+    _parent: Query<(&GlobalTransform, &CanTeleport), With<PlayerTargetReference>>,
     mut painter: ShapePainter,
 ) {
-    for (transform, in_shadow, target_in_range, player_target) in target.iter() {
+    for (transform, in_shadow, target_in_range, _player_target) in target.iter() {
         let too_far = !target_in_range;
 
         painter.transform = Transform::from_translation(transform.translation());

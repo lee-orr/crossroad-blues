@@ -2,12 +2,10 @@ use std::time::Duration;
 
 use super::player::*;
 use super::shadow::InShadow;
-use bevy::ecs::query::Has;
+
 use bevy::prelude::*;
 use bevy_tweening::lens::*;
 use bevy_tweening::*;
-use bevy_vector_shapes::prelude::ShapePainter;
-use bevy_vector_shapes::shapes::DiscPainter;
 
 use seldom_state::trigger::Done;
 
