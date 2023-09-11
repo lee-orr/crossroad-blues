@@ -1,6 +1,15 @@
-use bevy::prelude::{Commands, Component, Entity, GlobalTransform, Query, Transform, With};
+use bevy::prelude::{
+    Commands, Component, Entity, GlobalTransform, PostUpdate, Query, Transform, With,
+};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
+use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
+use super::schedule::InGamePreUpdate;
+
+pub fn shadow_plugin(app: &mut ReloadableAppContents) {
+    app.add_systems(InGamePreUpdate, check_for_shadow)
+        .add_systems(PostUpdate, draw_shadow);
+}
 #[derive(Component)]
 pub struct Shadow {
     pub radius: f32,

@@ -6,6 +6,7 @@ use super::{
     actions::{input_manager, PlayerAction},
     game_state::GameState,
     movement::{CanMove, Moving},
+    schedule::{InGamePreUpdate, InGameUpdate},
     shadow::{CheckForShadow, InShadow},
     souls::{Death, MaxSouls, Souls, SunSensitivity},
     teleport::{CanTeleport, TargetInRange, Teleporting},
@@ -14,11 +15,22 @@ use super::{
 use bevy::{ecs::query::Has, prelude::*};
 use bevy_ui_dsl::*;
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
+use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use leafwing_input_manager::prelude::ActionState;
 use seldom_state::{
     prelude::StateMachine,
     trigger::{DoneTrigger, JustReleasedTrigger},
 };
+
+pub fn player_plugin(app: &mut ReloadableAppContents) {
+    app.add_systems(PreUpdate, construct_player)
+        .add_systems(InGamePreUpdate, (move_player, player_target_teleportation))
+        .add_systems(InGameUpdate, (move_target, setup_souls_ui))
+        .add_systems(
+            PostUpdate,
+            (draw_player, draw_target, end_game, draw_souls_ui),
+        );
+}
 
 #[derive(Component)]
 pub struct ConstructPlayer;

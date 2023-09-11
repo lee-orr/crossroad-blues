@@ -1,4 +1,11 @@
 use bevy::prelude::*;
+use dexterous_developer::{ReloadableApp, ReloadableAppContents};
+
+use super::schedule::InGameUpdate;
+
+pub fn movement_plugin(app: &mut ReloadableAppContents) {
+    app.add_systems(InGameUpdate, movement);
+}
 
 #[derive(Component)]
 pub struct CanMove {

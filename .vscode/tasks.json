@@ -11,7 +11,7 @@
         {
             "label": "Watch",
             "type": "shell",
-            "command": "RUST_LOG=debug dexterous_developer_cli run -p game_dynamic"
+            "command": "dexterous_developer_cli run -p game_dynamic"
         },
         {
             "label": "Serve",

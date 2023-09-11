@@ -1,6 +1,11 @@
 use bevy::prelude::*;
+use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
-use super::shadow::InShadow;
+use super::{schedule::InGameUpdate, shadow::InShadow};
+
+pub fn souls_plugin(app: &mut ReloadableAppContents) {
+    app.add_systems(InGameUpdate, ((sun_sensitivity, take_damage).chain(),));
+}
 
 #[derive(Component, Clone, Copy, Debug, Default)]
 pub struct Souls(pub f32);

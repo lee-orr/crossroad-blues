@@ -1,13 +1,26 @@
 use std::time::Duration;
 
 use super::player::*;
+use super::schedule::InGameUpdate;
 use super::shadow::InShadow;
 
 use bevy::prelude::*;
 use bevy_tweening::lens::*;
 use bevy_tweening::*;
 
+use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use seldom_state::trigger::Done;
+
+pub fn teleport_plugin(app: &mut ReloadableAppContents) {
+    app.add_systems(
+        InGameUpdate,
+        (
+            trigger_teleport,
+            clear_teleport,
+            validate_teleporation_target,
+        ),
+    );
+}
 
 #[derive(Component)]
 pub struct CanTeleport {

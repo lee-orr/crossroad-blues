@@ -25,7 +25,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     assets::MainGameAssets,
-    in_game::souls::{sun_sensitivity, take_damage},
+    in_game::souls::{souls_plugin, sun_sensitivity, take_damage},
     ui::colors::{DEFAULT_AMBIENT, DEFAULT_CLEAR},
 };
 
@@ -79,33 +79,13 @@ fn reloadable(app: &mut ReloadableAppContents) {
         .add_systems(
             PreUpdate,
             run_in_game_pre_update.run_if(in_state(PauseState::None)),
-        )
-        .add_systems(PreUpdate, construct_player)
-        .add_systems(
-            InGamePreUpdate,
-            (move_player, player_target_teleportation, check_for_shadow),
-        )
-        .add_systems(
-            InGameUpdate,
-            (
-                (movement, move_target).chain(),
-                (trigger_teleport).chain(),
-                clear_teleport,
-                (sun_sensitivity, take_damage).chain(),
-                setup_souls_ui,
-                validate_teleporation_target,
-            ),
-        )
-        .add_systems(
-            PostUpdate,
-            (
-                draw_player,
-                draw_shadow,
-                draw_target,
-                draw_souls_ui,
-                end_game,
-            ),
         );
+
+    player_plugin(app);
+    shadow_plugin(app);
+    movement_plugin(app);
+    souls_plugin(app);
+    teleport_plugin(app);
 }
 
 #[derive(Component)]
