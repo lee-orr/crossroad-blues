@@ -18,8 +18,10 @@ impl Plugin for MainGameAssetPlugin {
 #[derive(AssetCollection, Resource, Default, Reflect, InspectorOptions)]
 #[reflect(Resource, InspectorOptions)]
 pub struct MainGameAssets {
-    #[asset(path = "music/test.flac")]
+    #[asset(path = "music/crossroad-blues-menu.flac")]
     pub menu_music: Handle<AudioSource>,
+    #[asset(path = "music/crossroad-blues.flac")]
+    pub game_music: Handle<AudioSource>,
     #[asset(path = "fonts/AMERSN__.ttf")]
     pub default_font: Handle<Font>,
 

@@ -1,4 +1,7 @@
-use bevy::prelude::*;
+use bevy::{
+    audio::{Volume, VolumeLevel},
+    prelude::*,
+};
 use bevy_ui_dsl::*;
 
 use crate::{
@@ -42,7 +45,7 @@ enum Buttons {
     Credits,
 }
 
-fn setup(mut commands: Commands, _assets: Res<MainGameAssets>, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, assets: Res<MainGameAssets>, asset_server: Res<AssetServer>) {
     commands.insert_resource(ClearColor(SCREEN_BACKGROUND_COLOR));
 
     let mut start_button = None;
@@ -76,6 +79,16 @@ fn setup(mut commands: Commands, _assets: Res<MainGameAssets>, asset_server: Res
     commands
         .entity(credits_button.unwrap())
         .insert(Buttons::Credits);
+    commands.spawn((
+        AudioBundle {
+            source: assets.menu_music.clone(),
+            settings: PlaybackSettings {
+                volume: Volume::Absolute(VolumeLevel::new(0.7)),
+                ..Default::default()
+            },
+        },
+        Screen,
+    ));
 }
 
 fn process_input(

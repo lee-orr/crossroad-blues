@@ -1,4 +1,5 @@
 mod actions;
+mod checkpoints;
 mod game_completed;
 mod game_over;
 mod game_state;
@@ -25,7 +26,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     assets::MainGameAssets,
-    in_game::souls::souls_plugin,
+    in_game::{checkpoints::checkpoint_plugin, souls::souls_plugin},
     ui::colors::{DEFAULT_AMBIENT, DEFAULT_CLEAR},
 };
 
@@ -86,6 +87,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
     movement_plugin(app);
     souls_plugin(app);
     teleport_plugin(app);
+    checkpoint_plugin(app);
 }
 
 #[derive(Component)]
@@ -113,10 +115,9 @@ fn setup(
         ))
         .with_children(|p| {
             p.spawn(AudioBundle {
-                source: assets.menu_music.clone(),
+                source: assets.game_music.clone(),
                 settings: PlaybackSettings {
-                    paused: true,
-                    volume: Volume::Absolute(VolumeLevel::new(0.)),
+                    volume: Volume::Absolute(VolumeLevel::new(0.7)),
                     ..Default::default()
                 },
             });
