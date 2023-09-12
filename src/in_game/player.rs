@@ -4,7 +4,7 @@ use crate::ui::classes::*;
 
 use super::{
     actions::{input_manager, PlayerAction},
-    checkpoints::{self, Checkpoints},
+    checkpoints::Checkpoints,
     game_state::GameState,
     movement::{CanMove, Moving},
     schedule::{InGamePreUpdate, InGameUpdate},

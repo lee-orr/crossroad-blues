@@ -62,8 +62,8 @@ fn collect_checkpoint(
                 commands.entity(checkpoint).despawn_recursive();
                 checkpoints.checkpoints.push_back(StoredCheckpoint {
                     position: player_pos,
-                    souls: souls.clone(),
-                    max_souls: max_souls.clone(),
+                    souls: *souls,
+                    max_souls: *max_souls,
                 });
                 if checkpoints.checkpoints.len() > checkpoints.max_checkpoints {
                     let _ = checkpoints.checkpoints.pop_front();
