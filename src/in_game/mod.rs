@@ -1,5 +1,6 @@
 mod actions;
 mod checkpoints;
+mod devils;
 mod game_completed;
 mod game_over;
 mod game_state;
@@ -25,13 +26,14 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     assets::MainGameAssets,
-    in_game::{checkpoints::checkpoint_plugin, souls::souls_plugin},
+    in_game::{checkpoints::checkpoint_plugin, devils::devils_plugin, souls::souls_plugin},
     ui::colors::{DEFAULT_AMBIENT, DEFAULT_CLEAR},
 };
 
 use self::{
     actions::PlayerAction,
     checkpoints::Checkpoint,
+    devils::LumberingDevil,
     game_completed::GameCompletedPlugin,
     game_over::GameOverPlugin,
     game_state::{GameState, PauseState},
@@ -90,6 +92,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
     souls_plugin(app);
     teleport_plugin(app);
     checkpoint_plugin(app);
+    devils_plugin(app);
 }
 
 #[derive(Component)]
@@ -149,6 +152,21 @@ fn setup(
                         ..Default::default()
                     },
                     Checkpoint,
+                ));
+            }
+
+            for _ in 0..2 {
+                let pos = Vec3::new(
+                    rng.f32_normalized() * 300.,
+                    rng.f32_normalized() * 300.,
+                    -5.,
+                );
+                p.spawn((
+                    SpatialBundle {
+                        transform: Transform::from_translation(pos),
+                        ..Default::default()
+                    },
+                    LumberingDevil,
                 ));
             }
         });
