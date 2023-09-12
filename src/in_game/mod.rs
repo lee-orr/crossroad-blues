@@ -32,6 +32,7 @@ use crate::{
 
 use self::{
     actions::PlayerAction,
+    checkpoints::Checkpoint,
     game_completed::GameCompletedPlugin,
     game_over::GameOverPlugin,
     game_state::{GameState, PauseState},
@@ -123,7 +124,7 @@ fn setup(
             });
             p.spawn((SpatialBundle::default(), ConstructPlayer));
 
-            for _ in 0..5 {
+            for _ in 0..15 {
                 let pos = Vec3::new(
                     rng.f32_normalized() * 300.,
                     rng.f32_normalized() * 300.,
@@ -137,6 +138,21 @@ fn setup(
                     Shadow {
                         radius: rng.f32_normalized().abs() * 50. + 20.,
                     },
+                ));
+            }
+
+            for _ in 0..2 {
+                let pos = Vec3::new(
+                    rng.f32_normalized() * 300.,
+                    rng.f32_normalized() * 300.,
+                    -5.,
+                );
+                p.spawn((
+                    SpatialBundle {
+                        transform: Transform::from_translation(pos),
+                        ..Default::default()
+                    },
+                    Checkpoint,
                 ));
             }
         });

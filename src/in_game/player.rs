@@ -4,6 +4,7 @@ use crate::ui::classes::*;
 
 use super::{
     actions::{input_manager, PlayerAction},
+    checkpoints::{self, Checkpoints},
     game_state::GameState,
     movement::{CanMove, Moving},
     schedule::{InGamePreUpdate, InGameUpdate},
@@ -77,6 +78,10 @@ pub fn construct_player(
                 Souls(50.),
                 MaxSouls(50.),
                 SunSensitivity(5.),
+                Checkpoints {
+                    checkpoints: Default::default(),
+                    max_checkpoints: 3,
+                },
                 StateMachine::default()
                     .trans::<Moving>(JustReleasedTrigger(PlayerAction::Teleport), Teleporting)
                     .trans::<Teleporting>(DoneTrigger::Success, Moving::default()),
@@ -177,15 +182,23 @@ pub fn draw_souls_ui(
 }
 
 pub fn end_game(
-    players: Query<Entity, With<Player>>,
+    mut players: Query<(Entity, &mut Checkpoints), With<Player>>,
     mut event: EventReader<Death>,
     mut commands: Commands,
 ) {
     for death in event.iter() {
-        let Ok(_player) = players.get(death.entity) else {
+        let Ok((player, mut checkpoints)) = players.get_mut(death.entity) else {
             continue;
         };
-        commands.insert_resource(NextState(Some(GameState::Failed)));
+        if let Some(revert) = checkpoints.checkpoints.pop_front() {
+            commands.entity(player).insert((
+                Transform::from_translation(revert.position),
+                revert.souls,
+                revert.max_souls,
+            ));
+        } else {
+            commands.insert_resource(NextState(Some(GameState::Failed)));
+        }
     }
 }
 

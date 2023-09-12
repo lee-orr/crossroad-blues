@@ -151,3 +151,36 @@ pub fn soul_bar(b: &mut NodeBundle) {
     b.style.flex_shrink = 0.;
     b.focus_policy = FocusPolicy::Pass;
 }
+
+pub fn checkpoint_marker_root(b: &mut NodeBundle) {
+    b.style.width = Val::Percent(100.);
+    b.style.height = Val::Percent(100.);
+    b.style.display = Display::Flex;
+    b.style.flex_direction = FlexDirection::Column;
+    b.style.justify_content = JustifyContent::FlexStart;
+    b.style.align_items = AlignItems::FlexEnd;
+    b.style.position_type = PositionType::Absolute;
+    b.style.left = Val::Px(0.);
+    b.style.top = Val::Px(0.);
+    b.focus_policy = FocusPolicy::Pass;
+    b.style.padding = UiRect::all(Val::Px(10.));
+}
+pub fn checkpoint_marker(b: &mut NodeBundle) {
+    b.style.width = Val::Px(15.);
+    b.style.height = Val::Px(30.);
+    b.style.margin = UiRect::all(Val::Px(5.));
+    b.background_color.0 = Color::rgba(0., 0., 0., 0.2);
+    b.border_color.0 = Color::BLACK;
+    b.style.border = UiRect::all(Val::Px(2.));
+    b.style.flex_direction = FlexDirection::ColumnReverse;
+    b.style.justify_content = JustifyContent::FlexStart;
+    b.style.align_items = AlignItems::Stretch;
+}
+
+pub fn checkpoint_marker_content(b: &mut NodeBundle) {
+    b.background_color.0 = colors::PRIMARY_COLOR;
+    b.style.flex_grow = 0.;
+    b.style.width = Val::Percent(100.);
+    b.style.height = Val::Percent(0.);
+    b.style.display = Display::None;
+}
