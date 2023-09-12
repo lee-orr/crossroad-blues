@@ -11,12 +11,12 @@
         {
             "label": "Watch",
             "type": "shell",
-            "command": "dexterous_developer_cli run -p game_dynamic"
+            "command": "dexterous_developer_cli run -p game_dynamic -w ./src"
         },
         {
             "label": "Serve",
             "type": "shell",
-            "command": "dexterous_developer_cli serve -p game_dynamic"
+            "command": "dexterous_developer_cli serve -p game_dynamic -w ./src"
         },
         {
             "label": "Run Wasm",

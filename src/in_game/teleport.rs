@@ -29,7 +29,7 @@ pub struct CanTeleport {
 
 impl Default for CanTeleport {
     fn default() -> Self {
-        Self { max_distance: 800. }
+        Self { max_distance: 400. }
     }
 }
 

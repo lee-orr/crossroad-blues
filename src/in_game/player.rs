@@ -231,7 +231,7 @@ pub fn move_target(
 
         let direction = Vec3::new(target_direction.1.x, target_direction.1.y, 0.);
 
-        let direction = direction.normalize_or_zero() * 200. * time.delta_seconds();
+        let direction = direction.normalize_or_zero() * 150. * time.delta_seconds();
 
         target.translation += direction;
     }
@@ -252,7 +252,7 @@ pub fn draw_target(
 
         painter.transform = Transform::from_translation(transform.translation());
         painter.color = if too_far {
-            crate::ui::colors::OVERLAY_COLOR
+            crate::ui::colors::BAD_COLOR
         } else if in_shadow {
             crate::ui::colors::PRIMARY_COLOR
         } else {

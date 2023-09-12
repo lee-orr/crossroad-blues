@@ -14,7 +14,7 @@ pub struct CanMove {
 
 impl Default for CanMove {
     fn default() -> Self {
-        Self { move_speed: 200. }
+        Self { move_speed: 175. }
     }
 }
 
