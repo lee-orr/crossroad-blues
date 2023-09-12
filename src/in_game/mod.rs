@@ -101,11 +101,6 @@ fn setup(
     mut rng: ResMut<GlobalRng>,
     _windows: Query<&mut Window>,
 ) {
-    // for mut window in windows.iter_mut() {
-    //     window.cursor.visible = false;
-    //     window.cursor.grab_mode = CursorGrabMode::Confined;
-    // }
-
     let rng = rng.get_mut();
     commands.insert_resource(ClearColor(DEFAULT_CLEAR));
     commands.insert_resource(DEFAULT_AMBIENT);
@@ -165,10 +160,6 @@ fn exit(mut commands: Commands, query: Query<Entity, With<InGame>>, _windows: Qu
     for item in query.iter() {
         commands.entity(item).despawn_recursive();
     }
-    // for mut window in windows.iter_mut() {
-    //     window.cursor.visible = true;
-    //     window.cursor.grab_mode = CursorGrabMode::None;
-    // }
 }
 
 fn clear_audio(audio: Query<&AudioSink>) {
