@@ -10,15 +10,11 @@ pub fn movement_plugin(app: &mut ReloadableAppContents) {
 #[derive(Component)]
 pub struct CanMove {
     pub move_speed: f32,
-    pub turn_speed: f32,
 }
 
 impl Default for CanMove {
     fn default() -> Self {
-        Self {
-            move_speed: 100.,
-            turn_speed: 7.,
-        }
+        Self { move_speed: 200. }
     }
 }
 

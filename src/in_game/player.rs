@@ -13,7 +13,8 @@ use super::{
     teleport::{CanTeleport, TargetInRange, Teleporting},
     InGame,
 };
-use bevy::{ecs::query::Has, prelude::*};
+use bevy::{ecs::query::Has, prelude::*, window::PrimaryWindow};
+use bevy_tweening::Lerp;
 use bevy_ui_dsl::*;
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
@@ -25,8 +26,8 @@ use seldom_state::{
 
 pub fn player_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(PreUpdate, construct_player)
-        .add_systems(InGamePreUpdate, (move_player, player_target_teleportation))
-        .add_systems(InGameUpdate, (move_target, setup_souls_ui))
+        .add_systems(InGamePreUpdate, (move_player, player_target_movement))
+        .add_systems(InGameUpdate, (move_target, setup_souls_ui, track_camera))
         .add_systems(
             PostUpdate,
             (draw_player, draw_target, end_game, draw_souls_ui),
@@ -117,16 +118,13 @@ pub fn move_player(mut player: Query<(&mut Moving, &ActionState<PlayerAction>)>)
     }
 }
 
-pub fn player_target_teleportation(
-    player: Query<
-        (
-            Entity,
-            &Transform,
-            &ActionState<PlayerAction>,
-            &PlayerTargetReference,
-        ),
-        With<Moving>,
-    >,
+pub fn player_target_movement(
+    player: Query<(
+        Entity,
+        &Transform,
+        &ActionState<PlayerAction>,
+        &PlayerTargetReference,
+    )>,
     mut commands: Commands,
 ) {
     for (player, _transform, action, target) in player.iter() {
@@ -205,24 +203,37 @@ pub fn end_game(
 pub fn move_target(
     mut targets: Query<(&PlayerTarget, &mut Transform)>,
     parents: Query<&PlayerTargetReference>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    camera: Query<(&Camera, &GlobalTransform), With<TrackingCamera>>,
+    time: Res<Time>,
 ) {
+    let set_position = if let Ok(Some(position)) = windows.get_single().map(|v| v.cursor_position())
+    {
+        if let Ok((camera, camera_transform)) = camera.get_single() {
+            camera
+                .viewport_to_world(camera_transform, position)
+                .map(|v| v.origin)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
     for (parent, mut target) in targets.iter_mut() {
+        if let Some(position) = set_position {
+            target.translation = Vec3::new(position.x, position.y, 0.);
+            continue;
+        }
+
         let Ok(target_direction) = parents.get(parent.0) else {
             continue;
         };
 
         let direction = Vec3::new(target_direction.1.x, target_direction.1.y, 0.);
 
-        let direction = if direction.length_squared() < 0.1 {
-            Vec3::ZERO
-        } else {
-            direction
-        };
+        let direction = direction.normalize_or_zero() * 200. * time.delta_seconds();
 
-        let translation = target.translation;
-        let translation = translation + direction;
-
-        target.translation = translation;
+        target.translation += direction;
     }
 }
 
@@ -248,5 +259,56 @@ pub fn draw_target(
             crate::ui::colors::BAD_COLOR
         };
         painter.circle(3.);
+    }
+}
+
+fn track_camera(
+    players: Query<&GlobalTransform, With<Player>>,
+    mut camera: Query<(&mut Transform, &TrackingCamera)>,
+    time: Res<Time>,
+) {
+    let Ok((mut transform, tracking)) = camera.get_single_mut() else {
+        return;
+    };
+
+    let Some(focal_point) = players
+        .iter()
+        .map(|v| v.translation() + v.right() * tracking.facing_offset)
+        .fold(None, |prev, val| match prev {
+            Some((sum, count)) => Some((sum + val, count + 1)),
+            None => Some((val, 1)),
+        })
+        .map(|(sum, num)| sum / (num as f32))
+    else {
+        return;
+    };
+
+    let delta = time.delta_seconds();
+
+    let diff = focal_point - transform.translation;
+    let distance = diff.length();
+    let diff = diff.normalize_or_zero();
+    let speed = 0f32.lerp(
+        &tracking.speed,
+        &(distance / tracking.distance_for_max_speed).clamp(0., 1.),
+    );
+
+    transform.translation += diff * delta * speed;
+}
+
+#[derive(Component)]
+pub struct TrackingCamera {
+    pub speed: f32,
+    pub facing_offset: f32,
+    pub distance_for_max_speed: f32,
+}
+
+impl Default for TrackingCamera {
+    fn default() -> Self {
+        Self {
+            speed: 200.,
+            facing_offset: 50.,
+            distance_for_max_speed: 100.,
+        }
     }
 }

@@ -1,5 +1,5 @@
 use bevy::{
-    audio::{Volume, VolumeLevel},
+    audio::{PlaybackMode, Volume, VolumeLevel},
     prelude::*,
 };
 use bevy_ui_dsl::*;
@@ -84,6 +84,7 @@ fn setup(mut commands: Commands, assets: Res<MainGameAssets>, asset_server: Res<
             source: assets.menu_music.clone(),
             settings: PlaybackSettings {
                 volume: Volume::Absolute(VolumeLevel::new(0.7)),
+                mode: PlaybackMode::Loop,
                 ..Default::default()
             },
         },

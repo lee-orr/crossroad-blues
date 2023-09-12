@@ -24,7 +24,7 @@ use bevy_tweening::TweeningPlugin;
 use bevy_vector_shapes::Shape2dPlugin;
 use credits::CreditsPlugin;
 use dexterous_developer::{hot_bevy_main, InitialPlugins};
-use in_game::InGamePlugin;
+use in_game::{InGamePlugin, TrackingCamera};
 use loading_state::LoadingScreenPlugin;
 use menu::MainMenuPlugin;
 use menus::{credits, loading_state, menu};
@@ -81,13 +81,16 @@ fn bevy_main(initial: impl InitialPlugins) {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle {
-        camera_2d: Camera2d {
-            clear_color: ClearColorConfig::Custom(ui::colors::SCREEN_BACKGROUND_COLOR),
+    commands.spawn((
+        Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(ui::colors::SCREEN_BACKGROUND_COLOR),
+            },
+            tonemapping: Tonemapping::AcesFitted,
+            ..default()
         },
-        tonemapping: Tonemapping::AcesFitted,
-        ..default()
-    });
+        TrackingCamera::default(),
+    ));
 }
 
 fn fix_light(

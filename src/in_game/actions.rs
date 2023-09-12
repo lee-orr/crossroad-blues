@@ -24,7 +24,13 @@ pub fn input_manager() -> InputManagerBundle<PlayerAction> {
                 PlayerAction::Move,
             ),
             (
-                DualAxis::mouse_motion().inverted_y().into(),
+                VirtualDPad {
+                    up: KeyCode::Up.into(),
+                    down: KeyCode::Down.into(),
+                    left: KeyCode::Left.into(),
+                    right: KeyCode::Right.into(),
+                }
+                .into(),
                 PlayerAction::Target,
             ),
         ])

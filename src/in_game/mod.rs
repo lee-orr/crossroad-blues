@@ -15,7 +15,6 @@ use bevy::{
     audio::{Volume, VolumeLevel},
     input::common_conditions::input_toggle_active,
     prelude::*,
-    window::CursorGrabMode,
 };
 use bevy_inspector_egui::quick::StateInspectorPlugin;
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
@@ -47,6 +46,8 @@ use self::{
 use dexterous_developer::{
     dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
 };
+
+pub use player::TrackingCamera;
 pub struct InGamePlugin;
 
 impl Plugin for InGamePlugin {
@@ -100,10 +101,10 @@ fn setup(
     mut rng: ResMut<GlobalRng>,
     mut windows: Query<&mut Window>,
 ) {
-    for mut window in windows.iter_mut() {
-        window.cursor.visible = false;
-        window.cursor.grab_mode = CursorGrabMode::Confined;
-    }
+    // for mut window in windows.iter_mut() {
+    //     window.cursor.visible = false;
+    //     window.cursor.grab_mode = CursorGrabMode::Confined;
+    // }
 
     let rng = rng.get_mut();
     commands.insert_resource(ClearColor(DEFAULT_CLEAR));
@@ -168,10 +169,10 @@ fn exit(
     for item in query.iter() {
         commands.entity(item).despawn_recursive();
     }
-    for mut window in windows.iter_mut() {
-        window.cursor.visible = true;
-        window.cursor.grab_mode = CursorGrabMode::None;
-    }
+    // for mut window in windows.iter_mut() {
+    //     window.cursor.visible = true;
+    //     window.cursor.grab_mode = CursorGrabMode::None;
+    // }
 }
 
 fn clear_audio(audio: Query<&AudioSink>) {
