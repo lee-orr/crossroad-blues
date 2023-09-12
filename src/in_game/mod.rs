@@ -99,7 +99,7 @@ fn setup(
     mut commands: Commands,
     assets: Res<MainGameAssets>,
     mut rng: ResMut<GlobalRng>,
-    mut windows: Query<&mut Window>,
+    _windows: Query<&mut Window>,
 ) {
     // for mut window in windows.iter_mut() {
     //     window.cursor.visible = false;
@@ -159,11 +159,7 @@ fn setup(
         });
 }
 
-fn exit(
-    mut commands: Commands,
-    query: Query<Entity, With<InGame>>,
-    mut windows: Query<&mut Window>,
-) {
+fn exit(mut commands: Commands, query: Query<Entity, With<InGame>>, _windows: Query<&mut Window>) {
     commands.insert_resource(NextState(Some(GameState::None)));
     commands.insert_resource(NextState(Some(PauseState::None)));
     for item in query.iter() {
