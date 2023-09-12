@@ -2,13 +2,12 @@ use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use big_brain::{
-    prelude::{ActionBuilder, ActionState, FirstToScore, Highest, ScorerBuilder},
+    prelude::{ActionBuilder, ActionState, Highest, ScorerBuilder},
     scorers::Score,
     thinker::{ActionSpan, Actor, Thinker},
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use leafwing_input_manager::orientation::Orientation;
-use seldom_state::prelude::StateMachine;
 
 use super::{
     movement::{CanMove, Moving},
@@ -220,10 +219,10 @@ fn chasing_action_system(
     players: Query<(Entity, &GlobalTransform), With<Player>>,
     mut commands: Commands,
     time: Res<Time>,
-    mut death: EventWriter<Death>,
+    _death: EventWriter<Death>,
 ) {
     let delta = time.delta_seconds();
-    for (Actor(actor), mut state, mut chasing) in &mut actors {
+    for (Actor(actor), mut state, chasing) in &mut actors {
         let Ok((position, mut restless)) = chaser.get_mut(*actor) else {
             continue;
         };
