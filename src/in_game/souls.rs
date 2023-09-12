@@ -1,10 +1,16 @@
 use bevy::prelude::*;
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
-use super::{schedule::InGameUpdate, shadow::InShadow};
+use super::{devils::Devil, player::Player, schedule::InGameUpdate, shadow::InShadow};
 
 pub fn souls_plugin(app: &mut ReloadableAppContents) {
-    app.add_systems(InGameUpdate, ((sun_sensitivity, take_damage).chain(),));
+    app.add_systems(
+        InGameUpdate,
+        (
+            kill_player_on_contact,
+            ((sun_sensitivity, take_damage).chain()),
+        ),
+    );
 }
 
 #[derive(Component, Clone, Copy, Debug, Default)]
@@ -26,6 +32,7 @@ pub struct Damage {
 #[derive(Clone, Copy, Debug)]
 pub enum DamageType {
     Sunlight,
+    Devil,
 }
 
 #[derive(Event, Clone, Copy, Debug)]
@@ -66,6 +73,24 @@ pub fn take_damage(
                 entity: event.entity,
                 cause: event.damage_type,
             });
+        }
+    }
+}
+
+fn kill_player_on_contact(
+    mut death: EventWriter<Death>,
+    players: Query<(Entity, &GlobalTransform), With<Player>>,
+    devils: Query<(&GlobalTransform, &Devil)>,
+) {
+    for (player, pos) in &players {
+        let pos = pos.translation();
+        for (devil, _) in &devils {
+            if pos.distance(devil.translation()) < 10. {
+                death.send(Death {
+                    entity: player,
+                    cause: DamageType::Devil,
+                });
+            }
         }
     }
 }
