@@ -2,9 +2,10 @@ use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use big_brain::{
-    prelude::{ActionBuilder, ActionState, Highest, ScorerBuilder},
+    prelude::{ActionBuilder, ActionState, FirstToScore, Highest, ScorerBuilder},
     scorers::Score,
     thinker::{ActionSpan, Actor, Thinker},
+    BigBrainSet,
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use leafwing_input_manager::orientation::Orientation;
@@ -12,7 +13,7 @@ use leafwing_input_manager::orientation::Orientation;
 use super::{
     movement::{CanMove, Moving},
     player::Player,
-    schedule::{InGamePreUpdate, InGameUpdate},
+    schedule::{InGameActions, InGamePreUpdate, InGameScorers, InGameUpdate},
     shadow::CheckForShadow,
     souls::Death,
     InGame,
@@ -21,7 +22,7 @@ use super::{
 pub fn devils_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(PreUpdate, spawn_lumbering_devil)
         .add_systems(
-            InGamePreUpdate,
+            InGameScorers,
             (
                 restless_scorer_system,
                 restful_scorer_system,
@@ -29,14 +30,14 @@ pub fn devils_plugin(app: &mut ReloadableAppContents) {
             ),
         )
         .add_systems(
-            InGameUpdate,
+            InGameActions,
             (
-                restlessness_system,
                 meandering_action_system,
                 rest_action_system,
                 chasing_action_system,
             ),
         )
+        .add_systems(InGameUpdate, (restlessness_system,))
         .add_systems(PostUpdate, draw_lumbering_devil);
 }
 
@@ -63,7 +64,7 @@ pub fn spawn_lumbering_devil(
             },
             Thinker::build()
                 .label("Lumbering Devil Thinker")
-                .picker(Highest)
+                .picker(FirstToScore { threshold: 0.8 })
                 .when(
                     Chase {
                         trigger_distance: 150.,
@@ -78,7 +79,6 @@ pub fn spawn_lumbering_devil(
                     Restless,
                     Meandering {
                         recovery_per_second: 35.,
-                        re_check_threshold: 0.,
                     },
                 )
                 .otherwise(Resting),
@@ -114,18 +114,17 @@ fn restlessness_system(time: Res<Time>, mut restlessness: Query<&mut Restlessnes
 #[derive(Component, Debug, Clone, ActionBuilder)]
 struct Meandering {
     pub recovery_per_second: f32,
-    pub re_check_threshold: f32,
 }
 
 fn meandering_action_system(
     time: Res<Time>,
     mut restless: Query<&mut Restlessness>,
-    mut actors: Query<(&Actor, &mut ActionState, &mut Meandering, &ActionSpan)>,
+    mut actors: Query<(&Actor, &mut ActionState, &Meandering, &ActionSpan)>,
     mut commands: Commands,
     mut rng: ResMut<GlobalRng>,
 ) {
     let delta = time.delta_seconds();
-    for (Actor(actor), mut state, mut meandering, span) in &mut actors {
+    for (Actor(actor), mut state, meandering, span) in &mut actors {
         let _guard = span.span().enter();
 
         if let Ok(mut restless) = restless.get_mut(*actor) {
@@ -135,13 +134,12 @@ fn meandering_action_system(
                     let rng = rng.get_mut();
                     let direction = Vec2::new(rng.f32_normalized(), rng.f32_normalized());
                     commands.entity(*actor).insert(Moving(direction));
-                    meandering.re_check_threshold = restless.current_restlessness / 2.;
                 }
                 ActionState::Cancelled => {
                     *state = ActionState::Failure;
                 }
                 ActionState::Executing => {
-                    if restless.current_restlessness <= meandering.re_check_threshold {
+                    if restless.current_restlessness <= 0. {
                         *state = ActionState::Success;
                     }
 
@@ -222,7 +220,9 @@ fn chasing_action_system(
     _death: EventWriter<Death>,
 ) {
     let delta = time.delta_seconds();
+    let mut num_chasers = 0;
     for (Actor(actor), mut state, chasing) in &mut actors {
+        num_chasers += 1;
         let Ok((position, mut restless)) = chaser.get_mut(*actor) else {
             continue;
         };
@@ -293,6 +293,8 @@ fn chasing_action_system(
             _ => {}
         }
     }
+
+    println!("Chasers: {num_chasers}");
 }
 
 #[derive(Clone, Component, Debug, ScorerBuilder)]
@@ -307,14 +309,17 @@ fn chase_scorer_system(
     mut query: Query<(&Actor, &mut Score, &Chase)>,
 ) {
     for (Actor(actor), mut score, chase) in &mut query {
+        println!("Checking...");
         if let Ok(devil) = devils.get(*actor) {
             let devil = devil.translation();
             for player in &players {
                 let distance = devil.distance(player.translation());
-                let s = (distance - chase.trigger_distance)
+                let s = (distance - chase.trigger_distance).max(0.)
                     / (chase.max_distance - chase.trigger_distance);
                 score.set(1. - s.clamp(0., 1.));
             }
+        } else {
+            println!("Couldn't score");
         }
     }
 }

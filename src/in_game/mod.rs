@@ -20,7 +20,7 @@ use bevy::{
 use bevy_inspector_egui::quick::StateInspectorPlugin;
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 
-use big_brain::BigBrainPlugin;
+use big_brain::{BigBrainPlugin, BigBrainSet};
 use leafwing_input_manager::prelude::InputManagerPlugin;
 
 use crate::{
@@ -70,13 +70,18 @@ impl Plugin for InGamePlugin {
         )
         .add_systems(OnExit(AppState::InGame), (exit, clear_audio))
         .add_systems(Update, (enable_audio).run_if(in_state(AppState::InGame)))
-        .setup_reloadable_elements::<reloadable>();
-    }
-}
-
-#[dexterous_developer_setup(in_game)]
-fn reloadable(app: &mut ReloadableAppContents) {
-    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, setup)
+        .add_systems(
+            PreUpdate,
+            run_in_game_scorers
+                .run_if(in_state(PauseState::None).and_then(in_state(AppState::InGame)))
+                .in_set(BigBrainSet::Scorers),
+        )
+        .add_systems(
+            PreUpdate,
+            run_in_game_actions
+                .run_if(in_state(PauseState::None).and_then(in_state(AppState::InGame)))
+                .in_set(BigBrainSet::Actions),
+        )
         .add_systems(
             Update,
             run_in_game_update.run_if(in_state(PauseState::None)),
@@ -84,7 +89,14 @@ fn reloadable(app: &mut ReloadableAppContents) {
         .add_systems(
             PreUpdate,
             run_in_game_pre_update.run_if(in_state(PauseState::None)),
-        );
+        )
+        .setup_reloadable_elements::<reloadable>();
+    }
+}
+
+#[dexterous_developer_setup(in_game)]
+fn reloadable(app: &mut ReloadableAppContents) {
+    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, setup);
 
     player_plugin(app);
     shadow_plugin(app);
@@ -200,4 +212,12 @@ fn run_in_game_update(world: &mut World) {
 
 fn run_in_game_pre_update(world: &mut World) {
     let _ = world.try_run_schedule(InGamePreUpdate);
+}
+
+fn run_in_game_scorers(world: &mut World) {
+    let _ = world.try_run_schedule(InGameScorers);
+}
+
+fn run_in_game_actions(world: &mut World) {
+    let _ = world.try_run_schedule(InGameActions);
 }

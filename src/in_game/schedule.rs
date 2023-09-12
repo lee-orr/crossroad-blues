@@ -4,3 +4,9 @@ use bevy::ecs::schedule::ScheduleLabel;
 pub struct InGamePreUpdate;
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct InGameUpdate;
+
+#[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct InGameScorers;
+
+#[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct InGameActions;
