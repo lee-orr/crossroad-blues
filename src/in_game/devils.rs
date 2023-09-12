@@ -2,10 +2,9 @@ use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use big_brain::{
-    prelude::{ActionBuilder, ActionState, FirstToScore, Highest, ScorerBuilder},
+    prelude::{ActionBuilder, ActionState, FirstToScore, ScorerBuilder},
     scorers::Score,
     thinker::{ActionSpan, Actor, Thinker},
-    BigBrainSet,
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use leafwing_input_manager::orientation::Orientation;
@@ -13,7 +12,7 @@ use leafwing_input_manager::orientation::Orientation;
 use super::{
     movement::{CanMove, Moving},
     player::Player,
-    schedule::{InGameActions, InGamePreUpdate, InGameScorers, InGameUpdate},
+    schedule::{InGameActions, InGameScorers, InGameUpdate},
     shadow::CheckForShadow,
     souls::Death,
     InGame,
