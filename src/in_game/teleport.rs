@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use super::player::*;
 use super::schedule::InGameUpdate;
 use super::shadow::InShadow;
+use super::{game_state::TemporaryIgnore, player::*};
 
 use bevy::prelude::*;
 use bevy_tweening::lens::*;
@@ -14,12 +14,9 @@ use seldom_state::trigger::Done;
 pub fn teleport_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(
         InGameUpdate,
-        (
-            trigger_teleport,
-            clear_teleport,
-            validate_teleporation_target,
-        ),
-    );
+        (trigger_teleport, validate_teleporation_target),
+    )
+    .add_systems(PostUpdate, (clear_teleport, run_teleport));
 }
 
 #[derive(Component)]
@@ -41,15 +38,31 @@ pub struct TargetInRange;
 #[component(storage = "SparseSet")]
 pub struct Teleporting;
 
+#[derive(Debug, Component, Clone)]
+#[component(storage = "SparseSet")]
+pub struct StartTeleport(pub Vec3);
+
 pub fn trigger_teleport(
-    targets: Query<&Transform, (With<TargetInRange>, With<InShadow>, With<PlayerTarget>)>,
+    targets: Query<
+        &Transform,
+        (
+            With<TargetInRange>,
+            With<InShadow>,
+            With<PlayerTarget>,
+            Without<TemporaryIgnore>,
+        ),
+    >,
     teleporters: Query<
         (Entity, &PlayerTargetReference, &Transform),
-        (With<Teleporting>, Without<Animator<Transform>>),
+        (
+            With<Teleporting>,
+            Without<StartTeleport>,
+            Without<TemporaryIgnore>,
+        ),
     >,
     mut commands: Commands,
 ) {
-    for (teleporter, target, transform) in teleporters.iter() {
+    for (teleporter, target, _transform) in teleporters.iter() {
         println!("Handling teleport");
         let Some(target) = targets.get(target.0).ok() else {
             commands.entity(teleporter).insert(Done::Success);
@@ -58,12 +71,27 @@ pub fn trigger_teleport(
 
         let next_position = target.translation;
 
+        commands
+            .entity(teleporter)
+            .insert(StartTeleport(next_position));
+    }
+}
+
+pub fn run_teleport(
+    teleporter: Query<(Entity, &Transform, &GlobalTransform, &StartTeleport)>,
+    mut commands: Commands,
+) {
+    for (entity, transform, _global, start_teleport) in &teleporter {
+        let start = transform.translation;
+        let start_scale = transform.scale;
+        let end = start_teleport.0;
+
         let shrink = Tween::new(
             EaseFunction::ExponentialIn,
             Duration::from_secs_f32(0.1),
             TransformScaleLens {
-                start: transform.scale,
-                end: Vec3::ONE * 0.1,
+                start: start_scale,
+                end: start_scale * 0.1,
             },
         );
 
@@ -71,8 +99,8 @@ pub fn trigger_teleport(
             EaseFunction::ExponentialOut,
             Duration::from_secs_f32(0.1),
             TransformScaleLens {
-                start: Vec3::ONE * 0.1,
-                end: Vec3::ONE,
+                start: start_scale * 0.1,
+                end: start_scale,
             },
         )
         .with_completed_event(TELEPORT_COMPLETED_EVENT);
@@ -80,31 +108,32 @@ pub fn trigger_teleport(
         let movement = Tween::new(
             EaseFunction::QuadraticInOut,
             Duration::from_secs_f32(0.4),
-            TransformPositionLens {
-                start: transform.translation,
-                end: next_position,
-            },
+            TransformPositionLens { start, end },
         );
 
         let seq = shrink.then(movement).then(grow);
 
-        commands.entity(teleporter).insert(Animator::new(seq));
+        commands
+            .entity(entity)
+            .remove::<StartTeleport>()
+            .insert((Animator::new(seq), TemporaryIgnore));
     }
 }
 
 const TELEPORT_COMPLETED_EVENT: u64 = 22;
 
 pub fn clear_teleport(
-    players: Query<Entity, With<Player>>,
+    teleporters: Query<Entity>,
     mut event: EventReader<TweenCompleted>,
     mut commands: Commands,
 ) {
     for event in event.iter() {
         if event.user_data == TELEPORT_COMPLETED_EVENT {
-            if let Ok(player) = players.get(event.entity) {
+            if let Ok(teleporter) = teleporters.get(event.entity) {
                 commands
-                    .entity(player)
+                    .entity(teleporter)
                     .remove::<Animator<Transform>>()
+                    .remove::<TemporaryIgnore>()
                     .insert(Done::Success);
             }
         }

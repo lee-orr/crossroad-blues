@@ -18,3 +18,7 @@ pub enum PauseState {
     None,
     Paused,
 }
+
+#[derive(Debug, Component, Clone)]
+#[component(storage = "SparseSet")]
+pub struct TemporaryIgnore;

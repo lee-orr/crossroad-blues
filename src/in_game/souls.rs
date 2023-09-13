@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
-use super::{devils::Danger, player::Player, schedule::InGameUpdate, shadow::InShadow};
+use super::{
+    devils::Danger, game_state::TemporaryIgnore, player::Player, schedule::InGameUpdate,
+    shadow::InShadow,
+};
 
 pub fn souls_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(
@@ -58,7 +61,7 @@ pub fn sun_sensitivity(
 }
 
 pub fn take_damage(
-    mut souls: Query<&mut Souls>,
+    mut souls: Query<&mut Souls, Without<TemporaryIgnore>>,
     mut events: EventReader<Damage>,
     mut death: EventWriter<Death>,
 ) {
@@ -79,13 +82,13 @@ pub fn take_damage(
 
 fn kill_player_on_contact(
     mut death: EventWriter<Death>,
-    players: Query<(Entity, &GlobalTransform), With<Player>>,
-    devils: Query<(&GlobalTransform, &Danger)>,
+    players: Query<(Entity, &GlobalTransform), (With<Player>, Without<TemporaryIgnore>)>,
+    devils: Query<(&GlobalTransform, &Danger), Without<TemporaryIgnore>>,
 ) {
     for (player, pos) in &players {
         let pos = pos.translation();
-        for (devil, _) in &devils {
-            if pos.distance(devil.translation()) < 10. {
+        for (devil, radius) in &devils {
+            if pos.distance(devil.translation()) < radius.0 {
                 death.send(Death {
                     entity: player,
                     cause: DamageType::Devil,

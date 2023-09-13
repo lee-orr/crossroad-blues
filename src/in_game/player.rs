@@ -5,12 +5,13 @@ use crate::ui::classes::*;
 use super::{
     actions::{input_manager, PlayerAction},
     checkpoints::Checkpoints,
+    devils::Danger,
     game_state::GameState,
     movement::{CanMove, Moving},
     schedule::{InGamePreUpdate, InGameUpdate},
     shadow::{CheckForShadow, InShadow},
     souls::{Death, MaxSouls, Souls, SunSensitivity},
-    teleport::{CanTeleport, TargetInRange, Teleporting},
+    teleport::{CanTeleport, StartTeleport, TargetInRange, Teleporting},
     InGame,
 };
 use bevy::{ecs::query::Has, prelude::*, window::PrimaryWindow};
@@ -34,6 +35,7 @@ pub fn player_plugin(app: &mut ReloadableAppContents) {
                 setup_souls_ui,
                 track_camera,
                 consome_checkpoint_for_health,
+                consume_checkpoint_teleport_devil,
             ),
         )
         .add_systems(
@@ -319,6 +321,43 @@ fn consome_checkpoint_for_health(
             if let Some(checkpoint) = checkpoints.checkpoints.pop_front() {
                 souls.0 = checkpoint.souls.0;
                 max_souls.0 = checkpoint.max_souls.0;
+            }
+        }
+    }
+}
+
+fn consume_checkpoint_teleport_devil(
+    mut players: Query<
+        (
+            &mut Checkpoints,
+            &PlayerTargetReference,
+            &ActionState<PlayerAction>,
+        ),
+        With<Player>,
+    >,
+    target: Query<&GlobalTransform, With<PlayerTarget>>,
+    devil: Query<(Entity, &GlobalTransform, &Danger)>,
+    mut commands: Commands,
+) {
+    for (mut checkpoints, target_ref, actions) in &mut players {
+        if checkpoints.checkpoints.is_empty()
+            || !actions.just_pressed(PlayerAction::SendDevilToCheckpoint)
+        {
+            continue;
+        }
+        let Ok(target_pos) = target.get(target_ref.0) else {
+            continue;
+        };
+        let target_pos = target_pos.translation();
+        for (devil, devil_pos, devil_radius) in &devil {
+            let devil_pos = devil_pos.translation();
+            if devil_pos.distance(target_pos) < devil_radius.0 {
+                if let Some(checkpoint) = checkpoints.checkpoints.pop_front() {
+                    let end_position = checkpoint.position;
+
+                    commands.entity(devil).insert(StartTeleport(end_position));
+                }
+                break;
             }
         }
     }

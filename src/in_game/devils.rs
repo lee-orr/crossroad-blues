@@ -9,6 +9,7 @@ use big_brain::{
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
 use super::{
+    game_state::TemporaryIgnore,
     movement::{CanMove, Moving},
     player::Player,
     schedule::{InGameActions, InGameScorers, InGameUpdate},
@@ -40,7 +41,7 @@ pub fn devils_plugin(app: &mut ReloadableAppContents) {
 }
 
 #[derive(Component)]
-pub struct Danger;
+pub struct Danger(pub f32);
 
 #[derive(Component)]
 pub struct LumberingDevil;
@@ -52,7 +53,7 @@ pub fn spawn_lumbering_devil(
     for devil in devils.iter() {
         commands.entity(devil).insert((
             Name::new("Lumbering Devil"),
-            Danger,
+            Danger(30.),
             CanMove { move_speed: 50. },
             InGame,
             CheckForShadow,
@@ -102,7 +103,10 @@ struct Restlessness {
     pub current_restlessness: f32,
 }
 
-fn restlessness_system(time: Res<Time>, mut restlessness: Query<&mut Restlessness>) {
+fn restlessness_system(
+    time: Res<Time>,
+    mut restlessness: Query<&mut Restlessness, Without<TemporaryIgnore>>,
+) {
     let delta = time.delta_seconds();
     for mut restless in restlessness.iter_mut() {
         restless.current_restlessness += restless.per_second * delta;
