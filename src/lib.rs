@@ -89,7 +89,11 @@ fn setup(mut commands: Commands) {
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::Custom(ui::colors::SCREEN_BACKGROUND_COLOR),
             },
-            tonemapping: Tonemapping::AcesFitted,
+            tonemapping: Tonemapping::None,
+            projection: OrthographicProjection {
+                scale: 0.5,
+                ..Default::default()
+            },
             ..default()
         },
         TrackingCamera::default(),
