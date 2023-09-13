@@ -4,7 +4,7 @@ use bevy::prelude::{AmbientLight, Color};
 pub const OVERLAY_COLOR: Color = Color::rgba(0., 0., 0., 0.9);
 pub const BORDER_COLOR: Color = Color::rgb(0., 0., 0.02);
 
-pub const SCREEN_BACKGROUND_COLOR: Color = Color::rgb(0., 0.13, 0.33);
+pub const SCREEN_BACKGROUND_COLOR: Color = Color::rgb(0.3, 0.39, 0.05);
 
 pub const PRIMARY_BACKGROUND_COLOR: Color = Color::rgb(0., 0.05, 0.13);
 

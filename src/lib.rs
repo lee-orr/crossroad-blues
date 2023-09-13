@@ -31,6 +31,8 @@ use menus::{credits, loading_state, menu};
 
 use ui::{colors::DEFAULT_AMBIENT, UiPlugin};
 
+use crate::app_state::DrawDebugGizmos;
+
 #[hot_bevy_main]
 fn bevy_main(initial: impl InitialPlugins) {
     #[cfg(target_arch = "wasm32")]
@@ -60,6 +62,7 @@ fn bevy_main(initial: impl InitialPlugins) {
         ))
         .insert_resource(ClearColor(ui::colors::SCREEN_BACKGROUND_COLOR))
         .insert_resource(DEFAULT_AMBIENT)
+        .init_resource::<DrawDebugGizmos>()
         .add_plugins((
             LoadingScreenPlugin,
             MainMenuPlugin,
@@ -76,7 +79,7 @@ fn bevy_main(initial: impl InitialPlugins) {
                 .run_if(input_toggle_active(false, KeyCode::F1)),
         )
         .add_systems(Startup, setup)
-        .add_systems(Update, fix_light)
+        .add_systems(Update, toggle_gizmos)
         .run();
 }
 
@@ -93,18 +96,12 @@ fn setup(mut commands: Commands) {
     ));
 }
 
-fn fix_light(
-    mut directional: Query<&mut DirectionalLight, Added<DirectionalLight>>,
-    mut point: Query<&mut PointLight, Added<PointLight>>,
-) {
-    for mut light in directional.iter_mut() {
-        if !light.shadows_enabled {
-            light.shadows_enabled = true;
-        }
-    }
-    for mut light in point.iter_mut() {
-        if !light.shadows_enabled {
-            light.shadows_enabled = true;
-        }
+fn toggle_gizmos(mut commands: Commands, gizmos: Res<DrawDebugGizmos>, input: Res<Input<KeyCode>>) {
+    if input.just_pressed(KeyCode::F2) {
+        let gizmos = match gizmos.as_ref() {
+            DrawDebugGizmos::None => DrawDebugGizmos::Collision,
+            DrawDebugGizmos::Collision => DrawDebugGizmos::None,
+        };
+        commands.insert_resource(gizmos);
     }
 }

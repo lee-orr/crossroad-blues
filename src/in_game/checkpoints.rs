@@ -5,7 +5,10 @@ use bevy_ui_dsl::{node, root};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
-use crate::ui::classes::{checkpoint_marker, checkpoint_marker_content, checkpoint_marker_root};
+use crate::{
+    app_state::DrawDebugGizmos,
+    ui::classes::{checkpoint_marker, checkpoint_marker_content, checkpoint_marker_root},
+};
 
 use super::{
     player::Player,
@@ -39,10 +42,15 @@ pub struct Checkpoint;
 fn draw_checkpoint(
     checkpoints: Query<&GlobalTransform, With<Checkpoint>>,
     mut painter: ShapePainter,
+    gizmos: Res<DrawDebugGizmos>,
 ) {
+    if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
+        return;
+    }
     painter.color = crate::ui::colors::PRIMARY_COLOR_PRIORITIZED;
 
     for transform in checkpoints.iter() {
+        painter.hollow = true;
         painter.set_translation(transform.translation() + Vec3::Z * 2.);
         painter.circle(10.);
     }

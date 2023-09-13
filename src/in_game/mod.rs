@@ -25,7 +25,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 
 use crate::{
     app_state::AppState,
-    assets::MainGameAssets,
+    assets::{MainGameAssets, WithMesh},
     in_game::{checkpoints::checkpoint_plugin, devils::devils_plugin, souls::souls_plugin},
     ui::colors::{DEFAULT_AMBIENT, DEFAULT_CLEAR},
 };
@@ -164,6 +164,7 @@ fn setup(
                         ..Default::default()
                     },
                     Checkpoint,
+                    WithMesh::Checkpoint,
                 ));
             }
 

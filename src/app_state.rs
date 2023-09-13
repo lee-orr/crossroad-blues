@@ -10,3 +10,10 @@ pub enum AppState {
     Credits,
     InGame,
 }
+
+#[derive(Resource, Default)]
+pub enum DrawDebugGizmos {
+    #[default]
+    None,
+    Collision,
+}

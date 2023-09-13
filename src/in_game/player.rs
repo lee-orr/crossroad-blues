@@ -1,6 +1,10 @@
 use std::ops::{Div, Mul};
 
-use crate::ui::classes::*;
+use crate::{
+    app_state::{AppState, DrawDebugGizmos},
+    assets::{MainColorMaterial, MainGameAssets, WithMesh},
+    ui::classes::*,
+};
 
 use super::{
     actions::{input_manager, PlayerAction},
@@ -26,22 +30,25 @@ use seldom_state::{
 };
 
 pub fn player_plugin(app: &mut ReloadableAppContents) {
-    app.add_systems(PreUpdate, construct_player)
-        .add_systems(InGamePreUpdate, (move_player, player_target_movement))
-        .add_systems(
-            InGameUpdate,
-            (
-                move_target,
-                setup_souls_ui,
-                track_camera,
-                consome_checkpoint_for_health,
-                consume_checkpoint_teleport_devil,
-            ),
-        )
-        .add_systems(
-            PostUpdate,
-            (draw_player, draw_target, end_game, draw_souls_ui),
-        );
+    app.add_systems(
+        PreUpdate,
+        construct_player.run_if(in_state(AppState::InGame)),
+    )
+    .add_systems(InGamePreUpdate, (move_player, player_target_movement))
+    .add_systems(
+        InGameUpdate,
+        (
+            move_target,
+            setup_souls_ui,
+            track_camera,
+            consome_checkpoint_for_health,
+            consume_checkpoint_teleport_devil,
+        ),
+    )
+    .add_systems(
+        PostUpdate,
+        (draw_target, end_game, draw_souls_ui, draw_player),
+    );
 }
 
 #[derive(Component)]
@@ -59,6 +66,8 @@ pub struct PlayerTargetReference(pub Entity, pub Vec2);
 pub fn construct_player(
     players: Query<(Entity, &GlobalTransform), With<ConstructPlayer>>,
     mut commands: Commands,
+    _assets: Res<MainGameAssets>,
+    _material: Res<MainColorMaterial>,
 ) {
     for (player_id, transform) in players.iter() {
         let position = transform.translation();
@@ -80,6 +89,10 @@ pub fn construct_player(
             .insert((
                 Name::new("Player"),
                 PlayerTargetReference(target_id, Vec2::ZERO),
+                SpatialBundle {
+                    transform: Transform::from_translation(position),
+                    ..Default::default()
+                },
                 Player,
                 CanTeleport::default(),
                 CanMove::default(),
@@ -96,6 +109,7 @@ pub fn construct_player(
                 StateMachine::default()
                     .trans::<Moving>(JustReleasedTrigger(PlayerAction::Teleport), Teleporting)
                     .trans::<Teleporting>(DoneTrigger::Success, Moving::default()),
+                WithMesh::Player,
             ));
     }
 }
@@ -103,8 +117,13 @@ pub fn construct_player(
 pub fn draw_player(
     player: Query<(&Transform, Has<InShadow>), With<Player>>,
     mut painter: ShapePainter,
+    gizmos: Res<DrawDebugGizmos>,
 ) {
+    if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
+        return;
+    }
     for (transform, in_shadow) in player.iter() {
+        painter.hollow = true;
         painter.transform = *transform;
         painter.color = if in_shadow {
             crate::ui::colors::PRIMARY_COLOR

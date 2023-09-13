@@ -91,7 +91,7 @@ pub fn run_teleport(
             Duration::from_secs_f32(0.1),
             TransformScaleLens {
                 start: start_scale,
-                end: start_scale * 0.1,
+                end: start_scale * 0.3,
             },
         );
 
@@ -99,7 +99,7 @@ pub fn run_teleport(
             EaseFunction::ExponentialOut,
             Duration::from_secs_f32(0.1),
             TransformScaleLens {
-                start: start_scale * 0.1,
+                start: start_scale * 0.3,
                 end: start_scale,
             },
         )

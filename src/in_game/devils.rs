@@ -8,6 +8,8 @@ use big_brain::{
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
+use crate::{app_state::DrawDebugGizmos, assets::WithMesh};
+
 use super::{
     game_state::TemporaryIgnore,
     movement::{CanMove, Moving},
@@ -53,7 +55,7 @@ pub fn spawn_lumbering_devil(
     for devil in devils.iter() {
         commands.entity(devil).insert((
             Name::new("Lumbering Devil"),
-            Danger(30.),
+            Danger(20.),
             CanMove { move_speed: 50. },
             InGame,
             CheckForShadow,
@@ -81,6 +83,7 @@ pub fn spawn_lumbering_devil(
                     },
                 )
                 .otherwise(Resting),
+            WithMesh::LumberingDevil,
         ));
     }
 }
@@ -88,12 +91,17 @@ pub fn spawn_lumbering_devil(
 fn draw_lumbering_devil(
     devils: Query<&GlobalTransform, With<LumberingDevil>>,
     mut painter: ShapePainter,
+    gizmos: Res<DrawDebugGizmos>,
 ) {
+    if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
+        return;
+    }
     painter.color = crate::ui::colors::BAD_COLOR;
 
     for devil in devils.iter() {
+        painter.hollow = true;
         painter.set_translation(devil.translation() + Vec3::Z * 3.);
-        painter.circle(30.);
+        painter.circle(20.);
     }
 }
 
