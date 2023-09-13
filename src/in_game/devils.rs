@@ -218,9 +218,7 @@ fn chasing_action_system(
     _death: EventWriter<Death>,
 ) {
     let delta = time.delta_seconds();
-    let mut num_chasers = 0;
     for (Actor(actor), mut state, chasing) in &mut actors {
-        num_chasers += 1;
         let Ok((position, mut restless)) = chaser.get_mut(*actor) else {
             continue;
         };
@@ -291,8 +289,6 @@ fn chasing_action_system(
             _ => {}
         }
     }
-
-    println!("Chasers: {num_chasers}");
 }
 
 #[derive(Clone, Component, Debug, ScorerBuilder)]
@@ -307,7 +303,6 @@ fn chase_scorer_system(
     mut query: Query<(&Actor, &mut Score, &Chase)>,
 ) {
     for (Actor(actor), mut score, chase) in &mut query {
-        println!("Checking...");
         if let Ok(devil) = devils.get(*actor) {
             let devil = devil.translation();
             for player in &players {
@@ -316,8 +311,6 @@ fn chase_scorer_system(
                     / (chase.max_distance - chase.trigger_distance);
                 score.set(1. - s.clamp(0., 1.));
             }
-        } else {
-            println!("Couldn't score");
         }
     }
 }

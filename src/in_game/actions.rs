@@ -6,6 +6,8 @@ pub enum PlayerAction {
     Move,
     Teleport,
     Target,
+    ConsumeCheckpointHealth,
+    SendDevilToCheckpoint,
 }
 
 pub fn input_manager() -> InputManagerBundle<PlayerAction> {
@@ -33,6 +35,8 @@ pub fn input_manager() -> InputManagerBundle<PlayerAction> {
                 .into(),
                 PlayerAction::Target,
             ),
+            (KeyCode::Key1.into(), PlayerAction::ConsumeCheckpointHealth),
+            (KeyCode::Key2.into(), PlayerAction::SendDevilToCheckpoint),
         ])
         .build(),
     }

@@ -27,7 +27,15 @@ use seldom_state::{
 pub fn player_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(PreUpdate, construct_player)
         .add_systems(InGamePreUpdate, (move_player, player_target_movement))
-        .add_systems(InGameUpdate, (move_target, setup_souls_ui, track_camera))
+        .add_systems(
+            InGameUpdate,
+            (
+                move_target,
+                setup_souls_ui,
+                track_camera,
+                consome_checkpoint_for_health,
+            ),
+        )
         .add_systems(
             PostUpdate,
             (draw_player, draw_target, end_game, draw_souls_ui),
@@ -244,7 +252,6 @@ pub fn draw_target(
         Has<TargetInRange>,
         &PlayerTarget,
     )>,
-    _parent: Query<(&GlobalTransform, &CanTeleport), With<PlayerTargetReference>>,
     mut painter: ShapePainter,
 ) {
     for (transform, in_shadow, target_in_range, _player_target) in target.iter() {
@@ -294,6 +301,27 @@ fn track_camera(
     );
 
     transform.translation += diff * delta * speed;
+}
+
+fn consome_checkpoint_for_health(
+    mut players: Query<
+        (
+            &mut Souls,
+            &mut MaxSouls,
+            &mut Checkpoints,
+            &ActionState<PlayerAction>,
+        ),
+        With<Player>,
+    >,
+) {
+    for (mut souls, mut max_souls, mut checkpoints, action_state) in &mut players {
+        if action_state.just_pressed(PlayerAction::ConsumeCheckpointHealth) {
+            if let Some(checkpoint) = checkpoints.checkpoints.pop_front() {
+                souls.0 = checkpoint.souls.0;
+                max_souls.0 = checkpoint.max_souls.0;
+            }
+        }
+    }
 }
 
 #[derive(Component)]
