@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
-use super::{devils::Devil, player::Player, schedule::InGameUpdate, shadow::InShadow};
+use super::{devils::Danger, player::Player, schedule::InGameUpdate, shadow::InShadow};
 
 pub fn souls_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(
@@ -80,7 +80,7 @@ pub fn take_damage(
 fn kill_player_on_contact(
     mut death: EventWriter<Death>,
     players: Query<(Entity, &GlobalTransform), With<Player>>,
-    devils: Query<(&GlobalTransform, &Devil)>,
+    devils: Query<(&GlobalTransform, &Danger)>,
 ) {
     for (player, pos) in &players {
         let pos = pos.translation();

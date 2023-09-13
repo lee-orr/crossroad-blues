@@ -7,7 +7,6 @@ use big_brain::{
     thinker::{ActionSpan, Actor, Thinker},
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
-use leafwing_input_manager::orientation::Orientation;
 
 use super::{
     movement::{CanMove, Moving},
@@ -41,19 +40,19 @@ pub fn devils_plugin(app: &mut ReloadableAppContents) {
 }
 
 #[derive(Component)]
-pub struct Devil;
+pub struct Danger;
 
 #[derive(Component)]
 pub struct LumberingDevil;
 
 pub fn spawn_lumbering_devil(
-    devils: Query<Entity, (With<LumberingDevil>, Without<Devil>)>,
+    devils: Query<Entity, (With<LumberingDevil>, Without<Danger>)>,
     mut commands: Commands,
 ) {
     for devil in devils.iter() {
         commands.entity(devil).insert((
             Name::new("Lumbering Devil"),
-            Devil,
+            Danger,
             CanMove { move_speed: 50. },
             InGame,
             CheckForShadow,
@@ -212,7 +211,7 @@ struct Chasing {
 
 fn chasing_action_system(
     mut actors: Query<(&Actor, &mut ActionState, &mut Chasing)>,
-    mut chaser: Query<(&GlobalTransform, &mut Restlessness), With<Devil>>,
+    mut chaser: Query<(&GlobalTransform, &mut Restlessness), With<Danger>>,
     players: Query<(Entity, &GlobalTransform), With<Player>>,
     mut commands: Commands,
     time: Res<Time>,
@@ -303,7 +302,7 @@ struct Chase {
 }
 
 fn chase_scorer_system(
-    devils: Query<&GlobalTransform, With<Devil>>,
+    devils: Query<&GlobalTransform, With<Danger>>,
     players: Query<&GlobalTransform, With<Player>>,
     mut query: Query<(&Actor, &mut Score, &Chase)>,
 ) {
