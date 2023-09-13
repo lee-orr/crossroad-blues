@@ -27,4 +27,50 @@ pub struct MainGameAssets {
 
     #[asset(path = "credits.cr.yaml")]
     pub credits: Handle<Credits>,
+
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh1/Primitive0",
+            "models/meshes.gltf#Mesh2/Primitive0",
+            "models/meshes.gltf#Mesh3/Primitive0",
+            "models/meshes.gltf#Mesh4/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub grasses: Vec<Handle<Mesh>>,
+    #[asset(paths("models/meshes.gltf#Mesh5/Primitive0"), collection(typed))]
+    pub player: Vec<Handle<Mesh>>,
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh6/Primitive0",
+            "models/meshes.gltf#Mesh7/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub roads: Vec<Handle<Mesh>>,
+    #[asset(paths("models/meshes.gltf#Mesh8/Primitive0"), collection(typed))]
+    pub lumbering_devil: Vec<Handle<Mesh>>,
+    #[asset(paths("models/meshes.gltf#Mesh9/Primitive0"), collection(typed))]
+    pub checkpoint: Vec<Handle<Mesh>>,
+    #[asset(paths("models/meshes.gltf#Mesh10/Primitive0"), collection(typed))]
+    pub person: Vec<Handle<Mesh>>,
+    #[asset(paths("models/meshes.gltf#Mesh11/Primitive0"), collection(typed))]
+    pub pentagram: Vec<Handle<Mesh>>,
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh12/Primitive0",
+            "models/meshes.gltf#Mesh13/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub shadows: Vec<Handle<Mesh>>,
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh14/Primitive0",
+            "models/meshes.gltf#Mesh15/Primitive0",
+            "models/meshes.gltf#Mesh16/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub tree_trunks: Vec<Handle<Mesh>>,
 }
