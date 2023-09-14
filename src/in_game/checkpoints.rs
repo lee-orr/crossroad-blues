@@ -97,6 +97,7 @@ fn setup_checkpoint_ui(
     if !markers.is_empty() {
         return;
     }
+    println!("Setting Up Checkpoint UI");
 
     let mut checkpoint_marekers = vec![];
 

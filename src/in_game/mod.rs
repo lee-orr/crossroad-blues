@@ -84,11 +84,18 @@ impl Plugin for InGamePlugin {
         )
         .add_systems(
             Update,
-            run_in_game_update.run_if(in_state(PauseState::None)),
+            run_in_game_update
+                .run_if(in_state(AppState::InGame).and_then(in_state(PauseState::None))),
         )
         .add_systems(
             PreUpdate,
-            run_in_game_pre_update.run_if(in_state(PauseState::None)),
+            run_in_game_pre_update
+                .run_if(in_state(AppState::InGame).and_then(in_state(PauseState::None))),
+        )
+        .add_systems(
+            PostUpdate,
+            run_in_game_post_update
+                .run_if(in_state(AppState::InGame).and_then(in_state(PauseState::None))),
         )
         .setup_reloadable_elements::<reloadable>();
     }
@@ -116,6 +123,7 @@ fn setup(
     mut rng: ResMut<GlobalRng>,
     _windows: Query<&mut Window>,
 ) {
+    println!("Spawning Level");
     let rng = rng.get_mut();
     commands.insert_resource(ClearColor(DEFAULT_CLEAR));
     commands.insert_resource(DEFAULT_AMBIENT);
@@ -201,6 +209,10 @@ fn run_in_game_update(world: &mut World) {
 
 fn run_in_game_pre_update(world: &mut World) {
     let _ = world.try_run_schedule(InGamePreUpdate);
+}
+
+fn run_in_game_post_update(world: &mut World) {
+    let _ = world.try_run_schedule(InGamePostUpdate);
 }
 
 fn run_in_game_scorers(world: &mut World) {

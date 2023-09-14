@@ -10,7 +10,7 @@ use super::{
     actions::{input_manager, PlayerAction},
     checkpoints::Checkpoints,
     devils::Danger,
-    game_state::GameState,
+    game_state::{GameState, TemporaryIgnore},
     movement::{CanMove, Moving},
     schedule::{InGamePreUpdate, InGameUpdate},
     shadow::{CheckForShadow, InShadow},
@@ -115,17 +115,29 @@ pub fn construct_player(
 }
 
 pub fn draw_player(
-    player: Query<(&Transform, Has<InShadow>), With<Player>>,
+    player: Query<
+        (
+            &Transform,
+            Has<InShadow>,
+            Has<TemporaryIgnore>,
+            Has<Teleporting>,
+        ),
+        With<Player>,
+    >,
     mut painter: ShapePainter,
     gizmos: Res<DrawDebugGizmos>,
 ) {
     if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
         return;
     }
-    for (transform, in_shadow) in player.iter() {
+    for (transform, in_shadow, temp, teleport) in player.iter() {
         painter.hollow = true;
         painter.transform = *transform;
-        painter.color = if in_shadow {
+        painter.color = if temp {
+            Color::BLUE
+        } else if teleport {
+            Color::PURPLE
+        } else if in_shadow {
             crate::ui::colors::PRIMARY_COLOR
         } else {
             crate::ui::colors::BAD_COLOR
@@ -176,6 +188,7 @@ pub fn setup_souls_ui(
     if !bars.is_empty() {
         return;
     }
+    println!("Setting Up Souls UI");
     let mut player_soul_bars = vec![];
     let r = root(soul_bar_root, &asset_server, &mut commands, |p| {
         for player in player.iter() {
