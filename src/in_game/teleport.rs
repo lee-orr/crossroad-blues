@@ -53,16 +53,16 @@ pub fn trigger_teleport(
         ),
     >,
     teleporters: Query<
-        (Entity, &PlayerTargetReference, &Transform),
+        (Entity, &PlayerTargetReference),
         (
-            With<Teleporting>,
+            Added<Teleporting>,
             Without<StartTeleport>,
             Without<TemporaryIgnore>,
         ),
     >,
     mut commands: Commands,
 ) {
-    for (teleporter, target, _transform) in teleporters.iter() {
+    for (teleporter, target) in teleporters.iter() {
         println!("Handling teleport");
         let Some(target) = targets.get(target.0).ok() else {
             commands.entity(teleporter).insert(Done::Success);
@@ -73,7 +73,7 @@ pub fn trigger_teleport(
 
         commands
             .entity(teleporter)
-            .insert(StartTeleport(next_position));
+            .insert((StartTeleport(next_position), TemporaryIgnore));
     }
 }
 
@@ -82,9 +82,13 @@ pub fn run_teleport(
     mut commands: Commands,
 ) {
     for (entity, transform, _global, start_teleport) in &teleporter {
-        let start = transform.translation;
+        let mut start = transform.translation;
         let start_scale = transform.scale;
-        let end = start_teleport.0;
+        let mut end = start_teleport.0;
+        start.z = 0.;
+        end.z = 0.;
+        let direction = end - start;
+        let angle = direction.y.atan2(direction.x);
 
         let shrink = Tween::new(
             EaseFunction::ExponentialIn,
@@ -111,7 +115,18 @@ pub fn run_teleport(
             TransformPositionLens { start, end },
         );
 
-        let seq = shrink.then(movement).then(grow);
+        let rotate = Tween::new(
+            EaseFunction::CubicIn,
+            Duration::from_secs_f32(0.1),
+            TransformRotateZLens {
+                start: transform.rotation.z,
+                end: angle,
+            },
+        );
+
+        let start = Tracks::new([shrink, rotate]);
+
+        let seq = Sequence::new([start]).then(movement).then(grow);
 
         commands
             .entity(entity)

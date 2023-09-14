@@ -4,6 +4,7 @@ use bevy::{
 };
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
+use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 
 use crate::{app_state::AppState, menus::credits::Credits};
 
@@ -33,10 +34,12 @@ fn spawn_mesh(
     meshes: Query<(Entity, &WithMesh)>,
     material: Res<MainColorMaterial>,
     assets: Option<Res<MainGameAssets>>,
+    mut rng: ResMut<GlobalRng>,
 ) {
     let Some(assets) = assets else {
         return;
     };
+    let rng = rng.get_mut();
     for (entity, with_mesh) in &meshes {
         let mut transform = Transform::from_scale(30. * Vec3::ONE)
             .with_rotation(Quat::from_euler(
@@ -45,15 +48,24 @@ fn spawn_mesh(
                 -90f32.to_radians(),
                 0.,
             ))
-            .with_translation(Vec3::NEG_Z * 10.);
+            .with_translation(Vec3::NEG_Z * 5.);
 
         let mesh = match with_mesh {
-            WithMesh::Player => assets.player.clone(),
-            WithMesh::LumberingDevil => assets.lumbering_devil.clone(),
-            WithMesh::Checkpoint => assets.checkpoint.clone(),
+            WithMesh::Player => {
+                transform.translation.z += 3.;
+                assets.player.clone()
+            }
+            WithMesh::LumberingDevil => {
+                transform.translation.z += 2.;
+                assets.lumbering_devil.clone()
+            }
+            WithMesh::Checkpoint => {
+                transform.translation.z += 4.;
+                assets.checkpoint.clone()
+            }
             WithMesh::Shadow(r) => {
                 transform.scale = Vec3::ONE * 1.8 * *r;
-                assets.shadows.get(0).unwrap().clone()
+                rng.sample(&assets.shadows).unwrap().clone()
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());
@@ -67,16 +79,6 @@ fn spawn_mesh(
                     transform,
                     ..Default::default()
                 });
-                if matches!(with_mesh, WithMesh::Shadow(_)) {
-                    p.spawn(MaterialMesh2dBundle {
-                        mesh: Mesh2dHandle(assets.tree_trunks.get(0).unwrap().clone()),
-                        material: material.color_material.clone(),
-                        transform: transform
-                            .with_scale(Vec3::ONE * 20.)
-                            .with_translation(Vec3::NEG_Z * 9.),
-                        ..Default::default()
-                    });
-                }
             });
     }
 }

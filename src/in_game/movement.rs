@@ -32,6 +32,7 @@ pub fn movement(mut mover: Query<(&mut Transform, &Moving, &CanMove)>, time: Res
         let translation = direction * can_move.move_speed * delta;
 
         transform.translation += translation;
+        transform.translation.z = 0.;
 
         let angle = direction.y.atan2(direction.x);
         transform.rotation = Quat::from_rotation_z(angle);

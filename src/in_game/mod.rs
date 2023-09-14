@@ -136,11 +136,7 @@ fn setup(
             p.spawn((SpatialBundle::default(), ConstructPlayer));
 
             for _ in 0..15 {
-                let pos = Vec3::new(
-                    rng.f32_normalized() * 300.,
-                    rng.f32_normalized() * 300.,
-                    -5.,
-                );
+                let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
                 p.spawn((
                     SpatialBundle {
                         transform: Transform::from_translation(pos),
@@ -153,11 +149,7 @@ fn setup(
             }
 
             for _ in 0..2 {
-                let pos = Vec3::new(
-                    rng.f32_normalized() * 300.,
-                    rng.f32_normalized() * 300.,
-                    -5.,
-                );
+                let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
                 p.spawn((
                     SpatialBundle {
                         transform: Transform::from_translation(pos),
@@ -169,11 +161,7 @@ fn setup(
             }
 
             for _ in 0..2 {
-                let pos = Vec3::new(
-                    rng.f32_normalized() * 300.,
-                    rng.f32_normalized() * 300.,
-                    -5.,
-                );
+                let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
                 p.spawn((
                     SpatialBundle {
                         transform: Transform::from_translation(pos),

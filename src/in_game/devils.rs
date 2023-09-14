@@ -96,11 +96,11 @@ fn draw_lumbering_devil(
     if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
         return;
     }
-    painter.color = crate::ui::colors::BAD_COLOR;
+    painter.color = Color::PINK;
 
     for devil in devils.iter() {
         painter.hollow = true;
-        painter.set_translation(devil.translation() + Vec3::Z * 3.);
+        painter.set_translation(devil.translation());
         painter.circle(20.);
     }
 }
