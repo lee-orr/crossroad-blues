@@ -23,11 +23,15 @@ pub fn teleport_plugin(app: &mut ReloadableAppContents) {
 #[derive(Component)]
 pub struct CanTeleport {
     pub max_distance: f32,
+    pub min_distance: f32,
 }
 
 impl Default for CanTeleport {
     fn default() -> Self {
-        Self { max_distance: 400. }
+        Self {
+            max_distance: 300.,
+            min_distance: 50.,
+        }
     }
 }
 
@@ -66,7 +70,7 @@ pub fn trigger_teleport(
     for (teleporter, target) in teleporters.iter() {
         println!("Handling teleport");
         let Some(target) = targets.get(target.0).ok() else {
-            commands.entity(teleporter).insert(Done::Success);
+            commands.entity(teleporter).remove::<Teleporting>();
             continue;
         };
 
@@ -156,12 +160,12 @@ pub fn clear_teleport(
     for event in event.iter() {
         if event.user_data == TELEPORT_COMPLETED_EVENT {
             if let Ok(teleporter) = teleporters.get(event.entity) {
-                println!("Clearing Teleport"); 
+                println!("Clearing Teleport");
                 commands
                     .entity(teleporter)
                     .remove::<Animator<Transform>>()
                     .remove::<TemporaryIgnore>()
-                    .insert(Done::Success);
+                    .remove::<Teleporting>();
             }
         }
     }
@@ -173,18 +177,19 @@ pub fn validate_teleporation_target(
     mut commands: Commands,
 ) {
     for (target, transform, player_target) in target.iter() {
-        let too_far =
+        let not_in_range =
             if let Ok((parent_transform, parent_can_teleport)) = parent.get(player_target.0) {
                 let max = parent_can_teleport.max_distance;
+                let min = parent_can_teleport.min_distance;
                 let distance = parent_transform
                     .translation()
                     .distance(transform.translation());
-                distance > max
+                distance > max || distance < min
             } else {
                 true
             };
 
-        if too_far {
+        if not_in_range {
             commands.entity(target).remove::<TargetInRange>();
         } else {
             commands.entity(target).insert(TargetInRange);

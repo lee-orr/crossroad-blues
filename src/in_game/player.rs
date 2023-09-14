@@ -21,7 +21,10 @@ use super::{
 use bevy::{ecs::query::Has, prelude::*, window::PrimaryWindow};
 use bevy_tweening::Lerp;
 use bevy_ui_dsl::*;
-use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
+use bevy_vector_shapes::{
+    prelude::ShapePainter,
+    shapes::{DiscPainter, LinePainter},
+};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use leafwing_input_manager::prelude::ActionState;
 use seldom_state::{
@@ -34,7 +37,10 @@ pub fn player_plugin(app: &mut ReloadableAppContents) {
         PreUpdate,
         construct_player.run_if(in_state(AppState::InGame)),
     )
-    .add_systems(InGamePreUpdate, (move_player, player_target_movement))
+    .add_systems(
+        InGamePreUpdate,
+        (move_player, trigger_teleport, player_target_movement),
+    )
     .add_systems(
         InGameUpdate,
         (
@@ -106,9 +112,6 @@ pub fn construct_player(
                     checkpoints: Default::default(),
                     max_checkpoints: 3,
                 },
-                StateMachine::default()
-                    .trans::<Moving>(JustReleasedTrigger(PlayerAction::Teleport), Teleporting)
-                    .trans::<Teleporting>(DoneTrigger::Success, Moving::default()),
                 WithMesh::Player,
             ));
     }
@@ -156,6 +159,19 @@ pub fn move_player(mut player: Query<(&mut Moving, &ActionState<PlayerAction>)>)
             continue;
         };
         moving.0 = data.xy();
+    }
+}
+
+pub fn trigger_teleport(
+    player: Query<(Entity, &ActionState<PlayerAction>)>,
+    mut commands: Commands,
+) {
+    for (player, actions) in &player {
+        if actions.just_pressed(PlayerAction::Teleport) {
+            commands.entity(player).insert(Teleporting);
+        } else if actions.just_released(PlayerAction::Teleport) {
+            commands.entity(player).remove::<Teleporting>();
+        }
     }
 }
 
@@ -286,9 +302,10 @@ pub fn draw_target(
         Has<TargetInRange>,
         &PlayerTarget,
     )>,
+    player: Query<&GlobalTransform, With<Player>>,
     mut painter: ShapePainter,
 ) {
-    for (transform, in_shadow, target_in_range, _player_target) in target.iter() {
+    for (transform, in_shadow, target_in_range, player_target) in target.iter() {
         let too_far = !target_in_range;
 
         painter.transform = Transform::from_translation(transform.translation());
@@ -300,6 +317,14 @@ pub fn draw_target(
             crate::ui::colors::BAD_COLOR
         };
         painter.circle(3.);
+        if !too_far {
+            if let Ok(player) = player.get(player_target.0) {
+                painter.line(
+                    Vec3::ZERO,
+                    player.translation() - painter.transform.translation,
+                );
+            }
+        }
     }
 }
 
