@@ -1,13 +1,16 @@
 use std::collections::VecDeque;
 
 use bevy::prelude::*;
-use bevy_ui_dsl::{node, root};
+use bevy_ui_dsl::{image, node, root};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
 use crate::{
     app_state::DrawDebugGizmos,
-    ui::classes::{checkpoint_marker, checkpoint_marker_content, checkpoint_marker_root},
+    ui::classes::{
+        checkpoint_marker, checkpoint_marker_background, checkpoint_marker_content,
+        checkpoint_marker_inner_background, checkpoint_marker_root,
+    },
 };
 
 use super::{
@@ -101,9 +104,12 @@ fn setup_checkpoint_ui(
         for (player, checkpoints) in player.iter() {
             for i in 0..checkpoints.max_checkpoints {
                 node(checkpoint_marker, p, |p| {
+                    image(checkpoint_marker_background, p);
                     checkpoint_marekers.push((
                         i,
-                        node(checkpoint_marker_content, p, |_| {}),
+                        node(checkpoint_marker_content, p, |p| {
+                            image(checkpoint_marker_inner_background, p);
+                        }),
                         player,
                     ))
                 });

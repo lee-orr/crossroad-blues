@@ -44,8 +44,8 @@ fn spawn_mesh(
         let mut transform = Transform::from_scale(30. * Vec3::ONE)
             .with_rotation(Quat::from_euler(
                 EulerRot::XYZ,
-                90f32.to_radians(),
-                -90f32.to_radians(),
+                0., //90f32.to_radians(),
+                0., //-90f32.to_radians(),
                 0.,
             ))
             .with_translation(Vec3::NEG_Z * 5.);
@@ -107,6 +107,11 @@ pub struct MainGameAssets {
     pub game_music: Handle<AudioSource>,
     #[asset(path = "fonts/AMERSN__.ttf")]
     pub default_font: Handle<Font>,
+
+    #[asset(path = "textures/checkpoint-empty.png")]
+    pub checkpoint_empty: Handle<Image>,
+    #[asset(path = "textures/checkpoint-full.png")]
+    pub checkpoint_full: Handle<Image>,
 
     #[asset(path = "credits.cr.yaml")]
     pub credits: Handle<Credits>,

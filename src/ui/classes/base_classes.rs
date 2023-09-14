@@ -166,21 +166,44 @@ pub fn checkpoint_marker_root(b: &mut NodeBundle) {
     b.style.padding = UiRect::all(Val::Px(10.));
 }
 pub fn checkpoint_marker(b: &mut NodeBundle) {
-    b.style.width = Val::Px(15.);
-    b.style.height = Val::Px(30.);
+    b.style.width = Val::Px(50.);
+    b.style.height = Val::Px(50.);
     b.style.margin = UiRect::all(Val::Px(5.));
-    b.background_color.0 = Color::rgba(0., 0., 0., 0.2);
-    b.border_color.0 = Color::BLACK;
-    b.style.border = UiRect::all(Val::Px(2.));
-    b.style.flex_direction = FlexDirection::ColumnReverse;
-    b.style.justify_content = JustifyContent::FlexStart;
-    b.style.align_items = AlignItems::Stretch;
+}
+
+pub fn checkpoint_marker_background(assets: &AssetServer, b: &mut ImageBundle) {
+    b.style.position_type = PositionType::Absolute;
+    b.style.top = Val::Px(0.);
+    b.style.left = Val::Px(0.);
+    b.style.bottom = Val::Px(0.);
+    b.style.right = Val::Px(0.);
+    b.image = UiImage {
+        texture: assets.load("textures/checkpoint-empty.png"),
+        ..default()
+    };
+}
+
+pub fn checkpoint_marker_inner_background(assets: &AssetServer, b: &mut ImageBundle) {
+    b.style.position_type = PositionType::Absolute;
+    b.style.left = Val::Px(0.);
+    b.style.bottom = Val::Px(0.);
+    b.style.right = Val::Px(0.);
+    b.style.width = Val::Px(50.);
+    b.style.height = Val::Px(50.);
+    b.image = UiImage {
+        texture: assets.load("textures/checkpoint-full.png"),
+        ..default()
+    };
 }
 
 pub fn checkpoint_marker_content(b: &mut NodeBundle) {
-    b.background_color.0 = colors::PRIMARY_COLOR;
+    b.style.position_type = PositionType::Absolute;
+    b.style.left = Val::Px(0.);
+    b.style.bottom = Val::Px(0.);
+    b.style.right = Val::Px(0.);
     b.style.flex_grow = 0.;
     b.style.width = Val::Percent(100.);
     b.style.height = Val::Percent(0.);
     b.style.display = Display::None;
+    b.style.overflow = Overflow::clip();
 }
