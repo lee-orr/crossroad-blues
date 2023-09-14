@@ -302,23 +302,27 @@ pub fn draw_target(
         Has<TargetInRange>,
         &PlayerTarget,
     )>,
-    player: Query<&GlobalTransform, With<Player>>,
+    player: Query<(&GlobalTransform, Has<Teleporting>), With<Player>>,
     mut painter: ShapePainter,
 ) {
     for (transform, in_shadow, target_in_range, player_target) in target.iter() {
-        let too_far = !target_in_range;
+        if let Ok((player, is_teleporting)) = player.get(player_target.0) {
+            let too_far = !target_in_range;
 
-        painter.transform = Transform::from_translation(transform.translation());
-        painter.color = if too_far {
-            crate::ui::colors::BAD_COLOR
-        } else if in_shadow {
-            crate::ui::colors::PRIMARY_COLOR
-        } else {
-            crate::ui::colors::BAD_COLOR
-        };
-        painter.circle(3.);
-        if !too_far {
-            if let Ok(player) = player.get(player_target.0) {
+            painter.transform = Transform::from_translation(transform.translation());
+            painter.color = if too_far {
+                crate::ui::colors::BAD_COLOR
+            } else if in_shadow {
+                if is_teleporting {
+                    Color::BLUE
+                } else {
+                    crate::ui::colors::PRIMARY_COLOR
+                }
+            } else {
+                crate::ui::colors::BAD_COLOR
+            };
+            painter.circle(3.);
+            if !too_far && in_shadow {
                 painter.line(
                     Vec3::ZERO,
                     player.translation() - painter.transform.translation,

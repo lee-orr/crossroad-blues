@@ -164,8 +164,7 @@ pub fn clear_teleport(
                 commands
                     .entity(teleporter)
                     .remove::<Animator<Transform>>()
-                    .remove::<TemporaryIgnore>()
-                    .remove::<Teleporting>();
+                    .remove::<TemporaryIgnore>();
             }
         }
     }
