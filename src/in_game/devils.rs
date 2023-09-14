@@ -186,7 +186,7 @@ fn meandering_action_system(
 struct Resting;
 
 fn rest_action_system(mut actors: Query<(&Actor, &mut ActionState, &Resting, &ActionSpan)>) {
-    for (Actor(actor), mut state, _, span) in &mut actors {
+    for (Actor(_actor), mut state, _, span) in &mut actors {
         let _guard = span.span().enter();
 
         match *state {

@@ -62,7 +62,6 @@ impl Plugin for InGamePlugin {
         app.add_plugins((
             InputManagerPlugin::<PlayerAction>::default(),
             BigBrainPlugin::new(InGamePreUpdate),
-            seldom_state::StateMachinePlugin,
         ))
         .add_plugins((PausePlugin, GameOverPlugin, GameCompletedPlugin))
         .add_state::<GameState>()

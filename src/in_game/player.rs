@@ -27,10 +27,6 @@ use bevy_vector_shapes::{
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use leafwing_input_manager::prelude::ActionState;
-use seldom_state::{
-    prelude::StateMachine,
-    trigger::{DoneTrigger, JustReleasedTrigger},
-};
 
 pub fn player_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(
