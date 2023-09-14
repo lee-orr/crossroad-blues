@@ -4,7 +4,7 @@ use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use big_brain::{
     prelude::{ActionBuilder, ActionState, FirstToScore, ScorerBuilder},
     scorers::Score,
-    thinker::{ActionSpan, Actor, Thinker},
+    thinker::{ActionSpan, Actor, HasThinker, Thinker},
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
@@ -22,14 +22,7 @@ use super::{
 
 pub fn devils_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(PreUpdate, spawn_lumbering_devil)
-        .add_systems(
-            InGameScorers,
-            (
-                restless_scorer_system,
-                restful_scorer_system,
-                chase_scorer_system,
-            ),
-        )
+        .add_systems(InGameScorers, (restless_scorer_system, chase_scorer_system))
         .add_systems(
             InGameActions,
             (
@@ -39,7 +32,7 @@ pub fn devils_plugin(app: &mut ReloadableAppContents) {
             ),
         )
         .add_systems(InGameUpdate, (restlessness_system,))
-        .add_systems(PostUpdate, draw_lumbering_devil);
+        .add_systems(PostUpdate, draw_devil);
 }
 
 #[derive(Component)]
@@ -88,20 +81,39 @@ pub fn spawn_lumbering_devil(
     }
 }
 
-fn draw_lumbering_devil(
-    devils: Query<&GlobalTransform, With<LumberingDevil>>,
+fn draw_devil(
+    devils: Query<(&GlobalTransform, &HasThinker, &Danger, &Restlessness)>,
+    thinkers: Query<&Thinker>,
     mut painter: ShapePainter,
     gizmos: Res<DrawDebugGizmos>,
 ) {
     if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
         return;
     }
-    painter.color = Color::PINK;
 
-    for devil in devils.iter() {
+    for (devil, thinker, danger, restlessness) in devils.iter() {
+        painter.color = Color::PINK;
         painter.hollow = true;
         painter.set_translation(devil.translation());
-        painter.circle(20.);
+        painter.circle(danger.0);
+        let Ok(thinker) = thinkers.get(thinker.entity()) else {
+            continue;
+        };
+        info!("Thinking... {thinker:?}");
+        let Some(value) = thinker.field("current_action_label") else {
+            continue;
+        };
+        let Some(Some(Some(value))) = value.downcast_ref::<Option<Option<String>>>() else {
+            continue;
+        };
+        painter.color = match value.as_str() {
+            "Resting" => Color::BLUE,
+            "Chasing" => Color::ORANGE,
+            "Meandering" => Color::WHITE,
+            _ => Color::BLACK,
+        };
+        painter.circle(danger.0 / 2.);
+        painter.circle((restlessness.current_restlessness / 100.) * (danger.0 / 2.));
     }
 }
 
@@ -146,10 +158,12 @@ fn meandering_action_system(
                     commands.entity(*actor).insert(Moving(direction));
                 }
                 ActionState::Cancelled => {
+                    commands.entity(*actor).remove::<Moving>();
                     *state = ActionState::Failure;
                 }
                 ActionState::Executing => {
                     if restless.current_restlessness <= 0. {
+                        commands.entity(*actor).remove::<Moving>();
                         *state = ActionState::Success;
                     }
 
@@ -172,7 +186,7 @@ fn meandering_action_system(
 struct Resting;
 
 fn rest_action_system(mut actors: Query<(&Actor, &mut ActionState, &Resting, &ActionSpan)>) {
-    for (Actor(_), mut state, _, span) in &mut actors {
+    for (Actor(actor), mut state, _, span) in &mut actors {
         let _guard = span.span().enter();
 
         match *state {
@@ -180,6 +194,9 @@ fn rest_action_system(mut actors: Query<(&Actor, &mut ActionState, &Resting, &Ac
                 *state = ActionState::Executing;
             }
             ActionState::Executing => {
+                *state = ActionState::Success;
+            }
+            ActionState::Cancelled => {
                 *state = ActionState::Success;
             }
             _ => {}
@@ -196,21 +213,8 @@ fn restless_scorer_system(
 ) {
     for (Actor(actor), mut score) in &mut query {
         if let Ok(restless) = restlessness.get(*actor) {
-            score.set((restless.current_restlessness / 100.).clamp(0., 1.));
-        }
-    }
-}
-
-#[derive(Clone, Component, Debug, ScorerBuilder)]
-struct Restful;
-
-fn restful_scorer_system(
-    restlessness: Query<&Restlessness>,
-    mut query: Query<(&Actor, &mut Score), With<Restful>>,
-) {
-    for (Actor(actor), mut score) in &mut query {
-        if let Ok(restless) = restlessness.get(*actor) {
-            score.set(1. - (restless.current_restlessness / 100.).clamp(0., 0.82));
+            let s = (restless.current_restlessness / 100.).clamp(0., 1.);
+            score.set(s);
         }
     }
 }
@@ -321,7 +325,8 @@ fn chase_scorer_system(
                 let distance = devil.distance(player.translation());
                 let s = (distance - chase.trigger_distance).max(0.)
                     / (chase.max_distance - chase.trigger_distance);
-                score.set(1. - s.clamp(0., 1.));
+                let s = 1. - s.clamp(0., 1.);
+                score.set(s);
             }
         }
     }

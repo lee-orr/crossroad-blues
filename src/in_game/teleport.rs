@@ -4,6 +4,7 @@ use super::schedule::InGameUpdate;
 use super::shadow::InShadow;
 use super::{game_state::TemporaryIgnore, player::*};
 
+use bevy::ecs::query::Has;
 use bevy::prelude::*;
 use bevy_tweening::lens::*;
 use bevy_tweening::*;
@@ -55,7 +56,7 @@ pub fn trigger_teleport(
     teleporters: Query<
         (Entity, &PlayerTargetReference),
         (
-            Added<Teleporting>,
+            With<Teleporting>,
             Without<StartTeleport>,
             Without<TemporaryIgnore>,
         ),
@@ -73,15 +74,25 @@ pub fn trigger_teleport(
 
         commands
             .entity(teleporter)
-            .insert((StartTeleport(next_position), TemporaryIgnore));
+            .insert(StartTeleport(next_position));
     }
 }
 
 pub fn run_teleport(
-    teleporter: Query<(Entity, &Transform, &GlobalTransform, &StartTeleport)>,
+    teleporter: Query<(
+        Entity,
+        &Transform,
+        &GlobalTransform,
+        &StartTeleport,
+        Has<TemporaryIgnore>,
+    )>,
     mut commands: Commands,
 ) {
-    for (entity, transform, _global, start_teleport) in &teleporter {
+    for (entity, transform, _global, start_teleport, ignore) in &teleporter {
+        println!("Running Teleport");
+        if ignore {
+            continue;
+        }
         let mut start = transform.translation;
         let start_scale = transform.scale;
         let mut end = start_teleport.0;
@@ -145,6 +156,7 @@ pub fn clear_teleport(
     for event in event.iter() {
         if event.user_data == TELEPORT_COMPLETED_EVENT {
             if let Ok(teleporter) = teleporters.get(event.entity) {
+                println!("Clearing Teleport"); 
                 commands
                     .entity(teleporter)
                     .remove::<Animator<Transform>>()

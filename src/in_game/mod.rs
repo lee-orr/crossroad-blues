@@ -20,7 +20,12 @@ use bevy::{
 use bevy_inspector_egui::quick::StateInspectorPlugin;
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 
-use big_brain::{BigBrainPlugin, BigBrainSet};
+use big_brain::{
+    prelude::ActionState,
+    scorers::Score,
+    thinker::{Action, Actor, Scorer, Thinker},
+    BigBrainPlugin, BigBrainSet,
+};
 use leafwing_input_manager::prelude::InputManagerPlugin;
 
 use crate::{
@@ -62,6 +67,12 @@ impl Plugin for InGamePlugin {
         .add_plugins((PausePlugin, GameOverPlugin, GameCompletedPlugin))
         .add_state::<GameState>()
         .register_type::<GameState>()
+        .register_type::<Thinker>()
+        .register_type::<Scorer>()
+        .register_type::<Action>()
+        .register_type::<Actor>()
+        .register_type::<Score>()
+        .register_type::<ActionState>()
         .add_event::<Damage>()
         .add_event::<Death>()
         .add_plugins(
