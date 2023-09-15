@@ -66,7 +66,6 @@ fn spawn_level(
         },
         InGame,
     ));
-    commands.spawn((InGame, SpatialBundle::default(), ConstructPlayer));
 
     let num_checkpoints = level.num_checkpoints.clone().collect::<Arc<[_]>>();
     let num_devils = level.num_devils.clone().collect::<Arc<[_]>>();
@@ -84,7 +83,7 @@ fn spawn_level(
     commands
         .spawn((
             SpatialBundle {
-                transform: Transform::from_translation(-0.5 * Vec3::new(width, height, 0.)),
+                // transform: Transform::from_translation(-0.5 * Vec3::new(width, height, 0.)),
                 ..Default::default()
             },
             InGame,
@@ -109,6 +108,23 @@ fn spawn_level(
                 },
                 InGame,
                 WithMesh::Pentagram,
+            ));
+
+            let player_position = Vec2::new(rng.f32() * 0.1, rng.f32() * 0.1);
+            let first_quad = level_shapes
+                .quads
+                .first()
+                .cloned()
+                .unwrap_or((Vec2::ZERO, Vec2::Y, Vec2::ONE, Vec2::X).into());
+            let player_position = first_quad.point_from_normalized(player_position);
+
+            p.spawn((
+                InGame,
+                SpatialBundle {
+                    transform: Transform::from_translation(player_position.extend(0.)),
+                    ..Default::default()
+                },
+                ConstructPlayer,
             ));
         });
 
@@ -518,7 +534,7 @@ struct LevelShape {
     quads: Arc<[LevelQuad]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct LevelQuad {
     top_left: Vec2,
     top_right: Vec2,

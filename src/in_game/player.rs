@@ -26,7 +26,7 @@ use bevy_vector_shapes::{
     shapes::{DiscPainter, LinePainter},
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
-use leafwing_input_manager::prelude::ActionState;
+use leafwing_input_manager::{orientation::Orientation, prelude::ActionState};
 
 pub fn player_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(
@@ -45,6 +45,7 @@ pub fn player_plugin(app: &mut ReloadableAppContents) {
             track_camera,
             consome_checkpoint_for_health,
             consume_checkpoint_teleport_devil,
+            consume_checkpoint,
         ),
     )
     .add_systems(
@@ -356,10 +357,57 @@ fn track_camera(
     let diff = diff.normalize_or_zero();
     let speed = 0f32.lerp(
         &tracking.speed,
-        &(distance / tracking.distance_for_max_speed).clamp(0., 1.),
+        &(distance / tracking.distance_for_max_speed),
     );
 
     transform.translation += diff * delta * speed;
+}
+
+fn consume_checkpoint(
+    mut players: Query<
+        (
+            &GlobalTransform,
+            &mut Souls,
+            &mut MaxSouls,
+            &mut Checkpoints,
+            &ActionState<PlayerAction>,
+            &PlayerTargetReference,
+        ),
+        With<Player>,
+    >,
+    target: Query<&GlobalTransform, With<PlayerTarget>>,
+    devil: Query<(Entity, &GlobalTransform, &Danger)>,
+    mut commands: Commands,
+) {
+    for (player_pos, mut souls, mut max_souls, mut checkpoints, action, target_ref) in &mut players
+    {
+        if !action.just_pressed(PlayerAction::Secondary) {
+            continue;
+        }
+        let Ok(target) = target.get(target_ref.0) else {
+            continue;
+        };
+
+        let target = target.translation();
+        let player_distance = target.distance(player_pos.translation());
+
+        let devil = devil.iter().find(|(_, devil_pos, devil_radius)| {
+            devil_pos.translation().distance(target) < devil_radius.0 * 2.
+        });
+
+        if let Some((devil, _, _)) = devil {
+            if let Some(checkpoint) = checkpoints.checkpoints.pop_front() {
+                let end_position = checkpoint.position;
+
+                commands.entity(devil).insert(StartTeleport(end_position));
+            }
+        } else if player_distance < 30. {
+            if let Some(checkpoint) = checkpoints.checkpoints.pop_front() {
+                souls.0 = checkpoint.souls.0;
+                max_souls.0 = checkpoint.max_souls.0;
+            }
+        }
+    }
 }
 
 fn consome_checkpoint_for_health(

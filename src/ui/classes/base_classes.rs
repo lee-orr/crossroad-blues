@@ -190,6 +190,7 @@ pub fn checkpoint_marker_inner_background(assets: &AssetServer, b: &mut ImageBun
     b.style.right = Val::Px(0.);
     b.style.width = Val::Px(50.);
     b.style.height = Val::Px(50.);
+    b.background_color.0 = Color::rgba(0.9, 0.9, 0.9, 0.4);
     b.image = UiImage {
         texture: assets.load("textures/checkpoint-full.png"),
         ..default()

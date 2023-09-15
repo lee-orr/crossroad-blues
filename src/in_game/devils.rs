@@ -38,7 +38,7 @@ pub fn devils_plugin(app: &mut ReloadableAppContents) {
                 chasing_action_system,
             ),
         )
-        .add_systems(InGameUpdate, (restlessness_system,))
+        .add_systems(InGameUpdate, (restlessness_system, mark_teleported_devil))
         .add_systems(
             PostUpdate,
             (draw_devil, despawn_devil, setup_danger_in_grid),
@@ -52,6 +52,9 @@ pub struct Danger(pub f32);
 
 #[derive(Component)]
 struct DangerAwaits;
+
+#[derive(Component)]
+pub struct SpawnTime(f32);
 
 const COLLISION_CELL_SIZE: f32 = 500.;
 const DESPAWN_DISTANCE: f32 = 1500.;
@@ -101,12 +104,24 @@ fn setup_danger_in_grid(
     }
 }
 
+fn mark_teleported_devil(
+    devils: Query<Entity, (With<TemporaryIgnore>, With<Danger>)>,
+    mut commands: Commands,
+    time: Res<Time>,
+) {
+    let now = time.elapsed_seconds();
+    for devil in &devils {
+        commands.entity(devil).insert(SpawnTime(now));
+    }
+}
+
 fn spawn_lumbering_devil(
     devils: Query<(Entity, &Parent), (With<LumberingDevil>, With<DangerAwaits>, Without<Danger>)>,
     mut commands: Commands,
     parents: Query<&GlobalTransform, With<Parent>>,
     grid: Res<CollisionGrid>,
     player: Query<&GlobalTransform, With<Player>>,
+    time: Res<Time>,
 ) {
     let mut adjacent_cells = HashSet::with_capacity(10);
     for player in &player {
@@ -124,6 +139,7 @@ fn spawn_lumbering_devil(
     if adjacent_cells.is_empty() {
         error!("No adjacent cells!");
     }
+    let now = time.elapsed_seconds();
 
     for cell in adjacent_cells.iter() {
         let Some(grid_cell) = grid.map.get(cell) else {
@@ -148,6 +164,7 @@ fn spawn_lumbering_devil(
                 CanMove { move_speed: 50. },
                 InGame,
                 CheckForShadow,
+                SpawnTime(now),
                 Restlessness {
                     per_second: 25.,
                     current_restlessness: 0.,
@@ -179,12 +196,17 @@ fn spawn_lumbering_devil(
 }
 
 fn despawn_devil(
-    devils: Query<(Entity, &GlobalTransform), With<Danger>>,
+    devils: Query<(Entity, &GlobalTransform, &SpawnTime), (With<Danger>, Without<TemporaryIgnore>)>,
     player: Query<&GlobalTransform, With<Player>>,
     mut commands: Commands,
+    time: Res<Time>,
 ) {
+    let now = time.elapsed_seconds();
     let positions = player.iter().map(|v| v.translation()).collect::<Box<[_]>>();
-    for (devil, transform) in &devils {
+    for (devil, transform, spawn_time) in &devils {
+        if now - spawn_time.0 < 20. {
+            continue;
+        }
         let pos = transform.translation();
         if positions.iter().all(|v| v.distance(pos) > DESPAWN_DISTANCE) {
             commands
@@ -195,6 +217,7 @@ fn despawn_devil(
                 .remove::<CheckForShadow>()
                 .remove::<Restlessness>()
                 .remove::<WithMesh>()
+                .remove::<SpawnTime>()
                 .insert(DangerAwaits)
                 .despawn_descendants();
         }
