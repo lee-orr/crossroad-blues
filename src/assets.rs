@@ -10,6 +10,8 @@ use crate::{app_state::AppState, menus::credits::Credits};
 
 pub struct MainGameAssetPlugin;
 
+pub const ROAD_TILE_SIZE: f32 = 50.;
+
 impl Plugin for MainGameAssetPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
@@ -27,6 +29,8 @@ pub enum WithMesh {
     LumberingDevil,
     Checkpoint,
     Shadow(f32),
+    RoadTile,
+    Pentagram,
 }
 
 fn spawn_mesh(
@@ -66,6 +70,14 @@ fn spawn_mesh(
             WithMesh::Shadow(r) => {
                 transform.scale = Vec3::ONE * 1.8 * *r;
                 rng.sample(&assets.shadows).unwrap().clone()
+            }
+            WithMesh::RoadTile => {
+                transform.translation.z += 1.;
+                rng.sample(&assets.roads).unwrap().clone()
+            }
+            WithMesh::Pentagram => {
+                transform.translation.z += 1.1;
+                assets.pentagram.clone()
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());

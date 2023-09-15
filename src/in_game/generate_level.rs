@@ -10,11 +10,8 @@ use noisy_bevy::simplex_noise_2d_seeded;
 
 use crate::{
     app_state::AppState,
-    assets::{MainGameAssets, WithMesh, ROAD_TILE_SIZE},
-    ui::{
-        self,
-        colors::{DEFAULT_AMBIENT, SCREEN_BACKGROUND_COLOR},
-    },
+    assets::{WithMesh, ROAD_TILE_SIZE},
+    ui::colors::{DEFAULT_AMBIENT, SCREEN_BACKGROUND_COLOR},
 };
 
 use super::{
@@ -74,13 +71,13 @@ fn spawn_level(
     let num_checkpoints = level.num_checkpoints.clone().collect::<Arc<[_]>>();
     let num_devils = level.num_devils.clone().collect::<Arc<[_]>>();
 
-    let num_checkpoints = rng.sample(&num_checkpoints).cloned().unwrap_or(1);
-    let num_devils = rng.sample(&num_devils).cloned().unwrap_or(1);
+    let _num_checkpoints = rng.sample(&num_checkpoints).cloned().unwrap_or(1);
+    let _num_devils = rng.sample(&num_devils).cloned().unwrap_or(1);
 
     let default_move = CanMove::default().move_speed;
 
-    let width = level.song_length.as_secs_f32() * default_move * (0.5 + 0.5 * rng.f32());
-    let height = level.song_length.as_secs_f32() * default_move * (0.5 + 0.5 * rng.f32());
+    let width = level.song_length.as_secs_f32() * default_move * (0.5 + 0.3 * rng.f32()) / 2.;
+    let height = level.song_length.as_secs_f32() * default_move * (0.5 + 0.3 * rng.f32()) / 2.;
 
     let level_shapes = define_level_shape(rng, width, height);
 
@@ -178,10 +175,10 @@ fn define_level_shape(rng: &Rng, width: f32, height: f32) -> LevelShape {
         (crossroads, end_pos_2, false),
     ]
     .iter()
-    .map(|(start, end, traverse)| LevelRoadSegment {
+    .map(|(start, end, _traverse)| LevelRoadSegment {
         start: *start,
         end: *end,
-        traversal: if *traverse { Some((0., 1.)) } else { None },
+        // traversal: if *traverse { Some((0., 1.)) } else { None },
     })
     .collect();
 
@@ -245,6 +242,275 @@ fn push_quad_point(p1: Vec2, p2: Vec2, opposite: Vec2, rng: &Rng) -> Vec2 {
 
     midpoint + diff * (rng.f32() / 2.)
 }
+fn spawn_road_segment(commands: &mut ChildBuilder, segment: &LevelRoadSegment, rng: &Rng) {
+    let start = segment.start;
+    let diff = segment.end - segment.start;
+    let total_distance = segment.end.distance(segment.start);
+    let road_tile_size_t = ROAD_TILE_SIZE / total_distance;
+    let mut current_t = 0.;
+
+    while current_t < 1. {
+        let point = start + diff * current_t;
+        let tile_size_mod = rng.f32_normalized() * 0.2 + 1.;
+        current_t += tile_size_mod * road_tile_size_t;
+        commands.spawn((
+            Name::new("road segment"),
+            InGame,
+            WithMesh::RoadTile,
+            SpatialBundle {
+                transform: Transform::from_translation(Vec3::new(point.x, point.y, 0.))
+                    .with_scale(Vec3::ONE * tile_size_mod)
+                    .with_rotation(Quat::from_rotation_z(rng.f32() * consts::PI)),
+                ..Default::default()
+            },
+        ));
+    }
+}
+
+fn fill_quad(commands: &mut ChildBuilder, quad: &LevelQuad, rng: &Rng) {
+    fill_quad_inner(1, commands, quad, rng);
+}
+
+const MIN_QUAD_SIZE: f32 = 100.;
+
+fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, rng: &Rng) {
+    let subdivide = level > 0 && rng.bool() && quad.size_min() > MIN_QUAD_SIZE;
+    if subdivide {
+        let level = level - 1;
+        let sub_quads = quad.subdivide_quads(rng);
+        for quad in sub_quads.iter() {
+            fill_quad_inner(level, commands, quad, rng);
+        }
+    } else {
+        let center = quad.quad_center();
+        commands
+            .spawn((SpatialBundle::default(), Name::new("Trees"), InGame))
+            .with_children(|p| {
+                let seed = rng.f32() * 1423.;
+                let tree_density = simplex_noise_2d_seeded(center, seed).abs() * 0.4 + 0.5;
+
+                place_trees(2, p, quad, rng, tree_density);
+            });
+
+        commands
+            .spawn((SpatialBundle::default(), Name::new("Dangers"), InGame))
+            .with_children(|p| {
+                let seed = rng.f32() * 115834.;
+                let danger_density = simplex_noise_2d_seeded(center, seed).abs() * 0.4 + 0.2;
+                place_danger(2, p, quad, rng, danger_density);
+            });
+
+        commands
+            .spawn((SpatialBundle::default(), Name::new("Checkpoints"), InGame))
+            .with_children(|p| {
+                let seed = rng.f32() * 124326.;
+                let danger_density = simplex_noise_2d_seeded(center, seed).abs() * 0.3 + 0.1;
+                place_checkpoints(3, p, quad, rng, danger_density);
+            });
+    }
+}
+
+const TREE_SIZES: &[f32] = &[1000., 500., 100.];
+
+fn place_trees(
+    level: usize,
+    commands: &mut ChildBuilder,
+    quad: &LevelQuad,
+    rng: &Rng,
+    density: f32,
+) {
+    let main_axis = quad.main_axis_min_length();
+    let cross_axis = quad.cross_axis_min_length();
+
+    let Some(size) = TREE_SIZES.get(level) else {
+        if level > TREE_SIZES.len() && !TREE_SIZES.is_empty() {
+            place_trees(TREE_SIZES.len() - 1, commands, quad, rng, density);
+        }
+        error!("No tree sizes available");
+        return;
+    };
+
+    if (main_axis < *size || cross_axis < *size) && level > 0 {
+        place_trees(level - 1, commands, quad, rng, density);
+        return;
+    }
+
+    let main_tiles = (main_axis / size).round().max(1.) as usize;
+    let cross_tiles = (cross_axis / size).round().max(1.) as usize;
+    let main_step = 1. / (main_tiles as f32);
+    let cross_step = 1. / (cross_tiles as f32);
+    let tree_radius = (main_step * main_axis / 2.)
+        .min(size / 2.)
+        .min(cross_step * cross_axis / 2.);
+
+    for x in 0..main_tiles {
+        for y in 0..cross_tiles {
+            let x = (x as f32) * main_step;
+            let y = (y as f32) * cross_step;
+            let inner = LevelQuad {
+                top_left: quad.point_from_normalized(Vec2::new(x, y + cross_step)),
+                top_right: quad.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
+                bottom_left: quad.point_from_normalized(Vec2::new(x, y)),
+                bottom_right: quad.point_from_normalized(Vec2::new(x + main_step, y)),
+            };
+
+            let spawn_here = rng.f32() < density;
+            if !spawn_here {
+                if level > 0 {
+                    place_trees(level - 1, commands, &inner, rng, density);
+                }
+                continue;
+            }
+            let point = inner.point_from_normalized(Vec2::new(
+                rng.f32_normalized() * 0.25 + 0.5,
+                rng.f32_normalized() * 0.25 + 0.5,
+            ));
+            let radius = tree_radius * (rng.f32() * 0.2 + 0.9);
+            commands.spawn((
+                Name::new("tree shadow"),
+                InGame,
+                SpatialBundle {
+                    transform: Transform::from_translation(point.extend(0.)),
+                    ..Default::default()
+                },
+                Shadow { radius },
+            ));
+        }
+    }
+}
+
+const DANGER_DISTANCES: &[f32] = &[1000., 500., 300.];
+
+fn place_danger(
+    level: usize,
+    commands: &mut ChildBuilder,
+    quad: &LevelQuad,
+    rng: &Rng,
+    density: f32,
+) {
+    let main_axis = quad.main_axis_min_length();
+    let cross_axis = quad.cross_axis_min_length();
+
+    let Some(size) = DANGER_DISTANCES.get(level) else {
+        if level > DANGER_DISTANCES.len() && !DANGER_DISTANCES.is_empty() {
+            place_danger(DANGER_DISTANCES.len() - 1, commands, quad, rng, density);
+        }
+        error!("No danger distances available");
+        return;
+    };
+
+    if (main_axis < *size || cross_axis < *size) && level > 0 {
+        place_danger(level - 1, commands, quad, rng, density);
+        return;
+    }
+
+    let main_tiles = (main_axis / size).round().max(1.) as usize;
+    let cross_tiles = (cross_axis / size).round().max(1.) as usize;
+    let main_step = 1. / (main_tiles as f32);
+    let cross_step = 1. / (cross_tiles as f32);
+
+    for x in 0..main_tiles {
+        for y in 0..cross_tiles {
+            let x = (x as f32) * main_step;
+            let y = (y as f32) * cross_step;
+            let inner = LevelQuad {
+                top_left: quad.point_from_normalized(Vec2::new(x, y + cross_step)),
+                top_right: quad.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
+                bottom_left: quad.point_from_normalized(Vec2::new(x, y)),
+                bottom_right: quad.point_from_normalized(Vec2::new(x + main_step, y)),
+            };
+
+            let spawn_here = rng.f32() < density;
+            if !spawn_here {
+                if level > 0 {
+                    place_danger(level - 1, commands, &inner, rng, density);
+                }
+                continue;
+            }
+            let point = inner.point_from_normalized(Vec2::new(
+                rng.f32_normalized() * 0.5 + 0.5,
+                rng.f32_normalized() * 0.5 + 0.5,
+            ));
+            commands.spawn((
+                InGame,
+                SpatialBundle {
+                    transform: Transform::from_translation(point.extend(0.)),
+                    ..Default::default()
+                },
+                LumberingDevil,
+            ));
+        }
+    }
+}
+
+const CHECKPOINT_DISTANCES: &[f32] = &[1200., 600., 400., 200.];
+
+fn place_checkpoints(
+    level: usize,
+    commands: &mut ChildBuilder,
+    quad: &LevelQuad,
+    rng: &Rng,
+    density: f32,
+) {
+    let main_axis = quad.main_axis_min_length();
+    let cross_axis = quad.cross_axis_min_length();
+
+    let Some(size) = CHECKPOINT_DISTANCES.get(level) else {
+        if level > CHECKPOINT_DISTANCES.len() && !CHECKPOINT_DISTANCES.is_empty() {
+            place_checkpoints(CHECKPOINT_DISTANCES.len() - 1, commands, quad, rng, density);
+        }
+        error!("No danger distances available");
+        return;
+    };
+
+    if (main_axis < *size || cross_axis < *size) && level > 0 {
+        place_checkpoints(level - 1, commands, quad, rng, density);
+        return;
+    }
+
+    let main_tiles = (main_axis / size).round().max(1.) as usize;
+    let cross_tiles = (cross_axis / size).round().max(1.) as usize;
+    let main_step = 1. / (main_tiles as f32);
+    let cross_step = 1. / (cross_tiles as f32);
+
+    for x in 0..main_tiles {
+        for y in 0..cross_tiles {
+            let x = (x as f32) * main_step;
+            let y = (y as f32) * cross_step;
+            let inner = LevelQuad {
+                top_left: quad.point_from_normalized(Vec2::new(x, y + cross_step)),
+                top_right: quad.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
+                bottom_left: quad.point_from_normalized(Vec2::new(x, y)),
+                bottom_right: quad.point_from_normalized(Vec2::new(x + main_step, y)),
+            };
+
+            let spawn_here = rng.f32() < density;
+            if !spawn_here {
+                if level > 0 {
+                    place_checkpoints(level - 1, commands, &inner, rng, density);
+                }
+                continue;
+            }
+            let point = inner.point_from_normalized(Vec2::new(
+                rng.f32_normalized() * 0.5 + 0.5,
+                rng.f32_normalized() * 0.5 + 0.5,
+            ));
+            commands.spawn((
+                SpatialBundle {
+                    transform: Transform::from_translation(point.extend(0.)),
+                    ..Default::default()
+                },
+                Checkpoint,
+                WithMesh::Checkpoint,
+                InGame,
+            ));
+        }
+    }
+}
+
+fn randomized_midpoint(a: &Vec2, b: &Vec2, rng: &Rng) -> Vec2 {
+    (*a - *b) * (rng.f32_normalized() * 0.1 + 0.5) + *b
+}
 
 struct LevelShape {
     crossroads: Vec2,
@@ -252,11 +518,60 @@ struct LevelShape {
     quads: Arc<[LevelQuad]>,
 }
 
+#[derive(Debug)]
 struct LevelQuad {
     top_left: Vec2,
     top_right: Vec2,
     bottom_left: Vec2,
     bottom_right: Vec2,
+}
+
+impl LevelQuad {
+    fn quad_center(&self) -> Vec2 {
+        (self.top_left + self.top_right + self.bottom_left + self.bottom_right) / 4.
+    }
+
+    fn size_min(&self) -> f32 {
+        self.top_left
+            .distance(self.bottom_right)
+            .min(self.bottom_left.distance(self.top_right))
+    }
+    fn cross_axis_min_length(&self) -> f32 {
+        self.top_left
+            .distance(self.bottom_left)
+            .min(self.top_right.distance(self.bottom_right))
+    }
+    fn main_axis_min_length(&self) -> f32 {
+        self.top_left
+            .distance(self.top_right)
+            .min(self.bottom_left.distance(self.bottom_right))
+    }
+    fn subdivide_quads(&self, rng: &Rng) -> [LevelQuad; 4] {
+        let LevelQuad {
+            top_left,
+            top_right,
+            bottom_left,
+            bottom_right,
+        } = self;
+        let center = randomized_midpoint(top_left, bottom_left, rng);
+        let left = randomized_midpoint(top_left, bottom_left, rng);
+        let top = randomized_midpoint(top_left, top_right, rng);
+        let right = randomized_midpoint(top_right, bottom_right, rng);
+        let bottom = randomized_midpoint(bottom_left, bottom_right, rng);
+
+        [
+            (*bottom_left, left, center, bottom).into(),
+            (left, *top_left, top, center).into(),
+            (center, top, *top_right, right).into(),
+            (bottom, center, right, *bottom_right).into(),
+        ]
+    }
+
+    fn point_from_normalized(&self, point: Vec2) -> Vec2 {
+        let x_point_1 = (self.bottom_right - self.bottom_left) * point.x + self.bottom_left;
+        let x_point_2 = (self.top_right - self.top_left) * point.x + self.top_left;
+        (x_point_2 - x_point_1) * point.y + x_point_1
+    }
 }
 
 impl From<&(Vec2, Vec2, Vec2, Vec2)> for LevelQuad {
@@ -278,159 +593,4 @@ impl From<(Vec2, Vec2, Vec2, Vec2)> for LevelQuad {
 struct LevelRoadSegment {
     start: Vec2,
     end: Vec2,
-    traversal: Option<(f32, f32)>,
-}
-
-fn spawn_road_segment(commands: &mut ChildBuilder, segment: &LevelRoadSegment, rng: &Rng) {
-    let start = segment.start;
-    let diff = segment.end - segment.start;
-    let total_distance = segment.end.distance(segment.start);
-    let roat_tile_size_t = ROAD_TILE_SIZE / total_distance;
-    let mut current_t = 0.;
-
-    while current_t < 1. {
-        let point = start + diff * current_t;
-        let tile_size_mod = rng.f32_normalized() * 0.2 + 1.;
-        current_t += tile_size_mod * roat_tile_size_t;
-        commands.spawn((
-            Name::new("road segment"),
-            InGame,
-            WithMesh::RoadTile,
-            SpatialBundle {
-                transform: Transform::from_translation(Vec3::new(point.x, point.y, 0.))
-                    .with_scale(Vec3::ONE * tile_size_mod)
-                    .with_rotation(Quat::from_rotation_z(rng.f32() * consts::PI)),
-                ..Default::default()
-            },
-        ));
-    }
-}
-
-fn fill_quad(commands: &mut ChildBuilder, quad: &LevelQuad, rng: &Rng) {
-    fill_quad_inner(1, commands, quad, rng);
-}
-
-fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, rng: &Rng) {
-    let subdivide = level > 0 && rng.bool();
-    if subdivide {
-        let level = level - 1;
-        let sub_quads = subdivide_quads(quad, rng);
-        for quad in sub_quads.iter() {
-            fill_quad_inner(level, commands, &quad, rng);
-        }
-    } else {
-        let center = quad_center(quad);
-        commands
-            .spawn((SpatialBundle::default(), Name::new("Trees"), InGame))
-            .with_children(|p| {
-                let seed = rng.f32() * 1423.;
-                let tree_density = simplex_noise_2d_seeded(center, seed).abs();
-
-                let tree_depth = (2. * tree_density + 1.).floor() as usize;
-                place_trees(tree_depth, p, quad, rng, tree_density);
-            });
-
-        commands
-            .spawn((SpatialBundle::default(), Name::new("Dangers"), InGame))
-            .with_children(|p| {
-                let seed = rng.f32() * 115834.;
-                let danger_density = simplex_noise_2d_seeded(center, seed);
-                let danger_depth = (2. * danger_density + 1.).floor() as usize;
-                place_danger(danger_depth, p, quad, rng, danger_density);
-            });
-    }
-}
-
-fn place_trees(
-    level: usize,
-    commands: &mut ChildBuilder,
-    quad: &LevelQuad,
-    rng: &Rng,
-    density: f32,
-) {
-    if let Some(level) = level.checked_sub(1) {
-        let sub_quads = subdivide_quads(quad, rng);
-        for quad in sub_quads.iter() {
-            place_trees(level, commands, quad, rng, density);
-        }
-    } else {
-        let center = quad_center(quad);
-        commands.spawn((
-            Name::new("tree shadow"),
-            InGame,
-            SpatialBundle {
-                transform: Transform::from_translation(center.extend(0.)),
-                ..Default::default()
-            },
-            Shadow {
-                radius: density * (rng.f32_normalized() * 0.1 + 1.) * dist_to_corners(quad, center),
-            },
-        ));
-    }
-}
-
-fn place_danger(
-    level: usize,
-    commands: &mut ChildBuilder,
-    quad: &LevelQuad,
-    rng: &Rng,
-    density: f32,
-) {
-    if let Some(level) = level.checked_sub(1) {
-        let sub_quads = subdivide_quads(quad, rng);
-        for quad in sub_quads.iter() {
-            place_danger(level, commands, quad, rng, density);
-        }
-    } else {
-        let place_danger = density > rng.f32();
-        if !place_danger {
-            return;
-        }
-        let center = quad_center(quad);
-        commands.spawn((
-            InGame,
-            SpatialBundle {
-                transform: Transform::from_translation(center.extend(0.)),
-                ..Default::default()
-            },
-            LumberingDevil,
-        ));
-    }
-}
-
-fn subdivide_quads(quad: &LevelQuad, rng: &Rng) -> [LevelQuad; 4] {
-    let LevelQuad {
-        top_left,
-        top_right,
-        bottom_left,
-        bottom_right,
-    } = quad;
-    let center = randomized_midpoint(top_left, bottom_left, rng);
-    let left = randomized_midpoint(top_left, bottom_left, rng);
-    let top = randomized_midpoint(top_left, top_right, rng);
-    let right = randomized_midpoint(top_right, bottom_right, rng);
-    let bottom = randomized_midpoint(bottom_left, bottom_right, rng);
-
-    [
-        (*bottom_left, left, center, bottom).into(),
-        (left, *top_left, top, center).into(),
-        (center, top, *top_right, right).into(),
-        (bottom, center, right, *bottom_right).into(),
-    ]
-}
-
-fn randomized_midpoint(a: &Vec2, b: &Vec2, rng: &Rng) -> Vec2 {
-    (*a - *b) * (rng.f32_normalized() * 0.1 + 0.5) + *b
-}
-
-fn quad_center(quad: &LevelQuad) -> Vec2 {
-    (quad.top_left + quad.top_right + quad.bottom_left + quad.bottom_right) / 4.
-}
-
-fn dist_to_corners(quad: &LevelQuad, point: Vec2) -> f32 {
-    quad.top_left
-        .distance(point)
-        .min(quad.top_right.distance(point))
-        .min(quad.bottom_right.distance(point))
-        .min(quad.bottom_left.distance(point))
 }

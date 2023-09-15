@@ -13,6 +13,7 @@ use assets::{MainGameAssetPlugin, MainGameAssets};
 use bevy::{
     asset::ChangeWatcher,
     core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping},
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     input::common_conditions::input_toggle_active,
     prelude::*,
 };
@@ -59,6 +60,8 @@ fn bevy_main(initial: impl InitialPlugins) {
             RngPlugin::default(),
             TweeningPlugin,
             SequentialActionsPlugin,
+            FrameTimeDiagnosticsPlugin,
+            LogDiagnosticsPlugin::default(),
         ))
         .insert_resource(ClearColor(ui::colors::SCREEN_BACKGROUND_COLOR))
         .insert_resource(DEFAULT_AMBIENT)
