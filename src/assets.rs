@@ -81,17 +81,18 @@ fn spawn_mesh(
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());
-        commands
-            .entity(entity)
-            .remove::<WithMesh>()
-            .with_children(|p| {
-                p.spawn(MaterialMesh2dBundle {
-                    mesh,
-                    material: material.color_material.clone(),
-                    transform,
-                    ..Default::default()
-                });
+        let Some(mut e) = commands.get_entity(entity) else {
+            error!("Entity doesn't exist");
+            continue;
+        };
+        e.remove::<WithMesh>().with_children(|p| {
+            p.spawn(MaterialMesh2dBundle {
+                mesh,
+                material: material.color_material.clone(),
+                transform,
+                ..Default::default()
             });
+        });
     }
 }
 #[derive(Resource)]

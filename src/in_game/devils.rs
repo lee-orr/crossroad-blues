@@ -1,4 +1,8 @@
-use bevy::{math::Vec3Swizzles, prelude::*};
+use bevy::{
+    math::Vec3Swizzles,
+    prelude::*,
+    utils::{HashMap, HashSet},
+};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use big_brain::{
@@ -8,20 +12,23 @@ use big_brain::{
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
-use crate::{app_state::DrawDebugGizmos, assets::WithMesh};
+use crate::{
+    app_state::{AppState, DrawDebugGizmos},
+    assets::WithMesh,
+};
 
 use super::{
     game_state::TemporaryIgnore,
     movement::{CanMove, Moving},
     player::Player,
-    schedule::{InGameActions, InGameScorers, InGameUpdate},
+    schedule::{InGameActions, InGamePreUpdate, InGameScorers, InGameUpdate},
     shadow::CheckForShadow,
     souls::Death,
     InGame,
 };
 
 pub fn devils_plugin(app: &mut ReloadableAppContents) {
-    app.add_systems(PreUpdate, spawn_lumbering_devil)
+    app.add_systems(InGamePreUpdate, spawn_lumbering_devil)
         .add_systems(InGameScorers, (restless_scorer_system, chase_scorer_system))
         .add_systems(
             InGameActions,
@@ -32,57 +39,171 @@ pub fn devils_plugin(app: &mut ReloadableAppContents) {
             ),
         )
         .add_systems(InGameUpdate, (restlessness_system,))
-        .add_systems(PostUpdate, draw_devil);
+        .add_systems(
+            PostUpdate,
+            (draw_devil, despawn_devil, setup_danger_in_grid),
+        )
+        .add_systems(OnEnter(AppState::InGame), clear_grid)
+        .reset_resource::<CollisionGrid>();
 }
 
 #[derive(Component)]
 pub struct Danger(pub f32);
 
 #[derive(Component)]
+struct DangerAwaits;
+
+const COLLISION_CELL_SIZE: f32 = 500.;
+const DESPAWN_DISTANCE: f32 = 1500.;
+
+#[derive(Resource, Default)]
+struct CollisionGrid {
+    map: HashMap<(i32, i32), HashSet<DangerInGrid>>,
+}
+
+fn clear_grid(mut commands: Commands) {
+    commands.insert_resource(CollisionGrid::default());
+}
+
+struct DangerInGrid(Entity, Vec3);
+
+impl PartialEq for DangerInGrid {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Eq for DangerInGrid {}
+
+impl std::hash::Hash for DangerInGrid {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+#[derive(Component)]
 pub struct LumberingDevil;
 
-pub fn spawn_lumbering_devil(
-    devils: Query<Entity, (With<LumberingDevil>, Without<Danger>)>,
+fn setup_danger_in_grid(
+    devils: Query<
+        (Entity, &GlobalTransform),
+        (With<LumberingDevil>, Without<DangerAwaits>, Without<Danger>),
+    >,
+    mut grid: ResMut<CollisionGrid>,
     mut commands: Commands,
 ) {
-    for devil in devils.iter() {
-        commands.entity(devil).insert((
-            Name::new("Lumbering Devil"),
-            Danger(20.),
-            CanMove { move_speed: 50. },
-            InGame,
-            CheckForShadow,
-            Restlessness {
-                per_second: 25.,
-                current_restlessness: 0.,
-            },
-            Thinker::build()
-                .label("Lumbering Devil Thinker")
-                .picker(FirstToScore { threshold: 0.8 })
-                .when(
-                    Chase {
-                        trigger_distance: 150.,
-                        max_distance: 200.,
-                    },
-                    Chasing {
-                        max_distance: 200.,
-                        player: None,
-                    },
-                )
-                .when(
-                    Restless,
-                    Meandering {
-                        recovery_per_second: 35.,
-                    },
-                )
-                .otherwise(Resting),
-            WithMesh::LumberingDevil,
-        ));
+    for (devil, transform) in &devils {
+        let pos = transform.translation().xy() / COLLISION_CELL_SIZE;
+        let cell = (pos.x.floor() as i32, pos.y.floor() as i32);
+        let cell_container = grid.map.entry(cell).or_default();
+        cell_container.insert(DangerInGrid(devil, transform.translation()));
+        commands.entity(devil).insert(DangerAwaits);
+    }
+}
+
+fn spawn_lumbering_devil(
+    devils: Query<(Entity, &Parent), (With<LumberingDevil>, With<DangerAwaits>, Without<Danger>)>,
+    mut commands: Commands,
+    parents: Query<&GlobalTransform, With<Parent>>,
+    grid: Res<CollisionGrid>,
+    player: Query<&GlobalTransform, With<Player>>,
+) {
+    let mut adjacent_cells = HashSet::with_capacity(10);
+    for player in &player {
+        let pos = player.translation().xy() / COLLISION_CELL_SIZE;
+        let cell = (pos.x.floor() as i32, pos.y.floor() as i32);
+        for x in -1..=1 {
+            let x = cell.0 + x;
+            for y in -1..=1 {
+                let y = cell.1 + y;
+                adjacent_cells.insert((x, y));
+            }
+        }
+    }
+
+    if adjacent_cells.is_empty() {
+        error!("No adjacent cells!");
+    }
+
+    for cell in adjacent_cells.iter() {
+        let Some(grid_cell) = grid.map.get(cell) else {
+            continue;
+        };
+        for DangerInGrid(devil, position) in grid_cell.iter() {
+            let Ok((devil, parent)) = devils.get(*devil) else {
+                continue;
+            };
+            let Ok(transform) = parents.get(parent.get()) else {
+                error!("Cant get devil's parent object");
+                continue;
+            };
+            let Some(mut devil) = commands.get_entity(devil) else {
+                error!("Devil does not exist");
+                continue;
+            };
+            devil.remove::<DangerAwaits>().insert((
+                Name::new("Lumbering Devil"),
+                Transform::from_translation(*position - transform.translation()),
+                Danger(20.),
+                CanMove { move_speed: 50. },
+                InGame,
+                CheckForShadow,
+                Restlessness {
+                    per_second: 25.,
+                    current_restlessness: 0.,
+                },
+                Thinker::build()
+                    .label("Lumbering Devil Thinker")
+                    .picker(FirstToScore { threshold: 0.8 })
+                    .when(
+                        Chase {
+                            trigger_distance: 150.,
+                            max_distance: 200.,
+                        },
+                        Chasing {
+                            max_distance: 200.,
+                            player: None,
+                        },
+                    )
+                    .when(
+                        Restless,
+                        Meandering {
+                            recovery_per_second: 35.,
+                        },
+                    )
+                    .otherwise(Resting),
+                WithMesh::LumberingDevil,
+            ));
+        }
+    }
+}
+
+fn despawn_devil(
+    devils: Query<(Entity, &GlobalTransform), With<Danger>>,
+    player: Query<&GlobalTransform, With<Player>>,
+    mut commands: Commands,
+) {
+    let positions = player.iter().map(|v| v.translation()).collect::<Box<[_]>>();
+    for (devil, transform) in &devils {
+        let pos = transform.translation();
+        if positions.iter().all(|v| v.distance(pos) > DESPAWN_DISTANCE) {
+            commands
+                .entity(devil)
+                .remove::<Danger>()
+                .remove::<Thinker>()
+                .remove::<CanMove>()
+                .remove::<CheckForShadow>()
+                .remove::<Restlessness>()
+                .remove::<WithMesh>()
+                .insert(DangerAwaits)
+                .despawn_descendants();
+        }
     }
 }
 
 fn draw_devil(
     devils: Query<(&GlobalTransform, &HasThinker, &Danger, &Restlessness)>,
+    devils_await: Query<(&GlobalTransform, &DangerAwaits)>,
     thinkers: Query<&Thinker>,
     mut painter: ShapePainter,
     gizmos: Res<DrawDebugGizmos>,
@@ -114,6 +235,13 @@ fn draw_devil(
         };
         painter.circle(danger.0 / 2.);
         painter.circle((restlessness.current_restlessness / 100.) * (danger.0 / 2.));
+    }
+
+    for (devil, _) in &devils_await {
+        painter.color = Color::BLUE;
+        painter.hollow = false;
+        painter.set_translation(devil.translation());
+        painter.circle(15.);
     }
 }
 
