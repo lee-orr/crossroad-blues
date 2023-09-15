@@ -1,4 +1,7 @@
-use bevy::{prelude::KeyCode, reflect::Reflect};
+use bevy::{
+    prelude::{KeyCode, MouseButton},
+    reflect::Reflect,
+};
 use leafwing_input_manager::prelude::*;
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
@@ -37,6 +40,7 @@ pub fn input_manager() -> InputManagerBundle<PlayerAction> {
             ),
             (KeyCode::Key1.into(), PlayerAction::ConsumeCheckpointHealth),
             (KeyCode::Key2.into(), PlayerAction::SendDevilToCheckpoint),
+            (MouseButton::Left.into(), PlayerAction::Teleport),
         ])
         .build(),
     }

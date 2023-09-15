@@ -163,7 +163,7 @@ pub fn trigger_teleport(
     mut commands: Commands,
 ) {
     for (player, actions) in &player {
-        if actions.just_pressed(PlayerAction::Teleport) {
+        if actions.pressed(PlayerAction::Teleport) {
             commands.entity(player).insert(Teleporting);
         } else if actions.just_released(PlayerAction::Teleport) {
             commands.entity(player).remove::<Teleporting>();
