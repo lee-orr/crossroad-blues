@@ -29,7 +29,7 @@ impl Default for CanTeleport {
     fn default() -> Self {
         Self {
             max_distance: 300.,
-            min_distance: 50.,
+            min_distance: 75.,
         }
     }
 }
@@ -69,7 +69,6 @@ pub fn trigger_teleport(
     for (teleporter, target) in teleporters.iter() {
         println!("Handling teleport");
         let Some(target) = targets.get(target.0).ok() else {
-            commands.entity(teleporter).remove::<Teleporting>();
             continue;
         };
 

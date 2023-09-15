@@ -4,6 +4,7 @@ mod devils;
 mod game_completed;
 mod game_over;
 mod game_state;
+mod generate_level;
 mod movement;
 mod pause_screen;
 mod player;
@@ -16,8 +17,13 @@ use bevy::{
     audio::{Volume, VolumeLevel},
     input::common_conditions::input_toggle_active,
     prelude::*,
+    utils::HashSet,
 };
 use bevy_inspector_egui::quick::StateInspectorPlugin;
+use bevy_rapier2d::{
+    prelude::{ActiveCollisionTypes, NoUserData, RapierPhysicsPlugin},
+    render::RapierDebugRenderPlugin,
+};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 
 use big_brain::{
@@ -31,7 +37,10 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     assets::{MainGameAssets, WithMesh},
-    in_game::{checkpoints::checkpoint_plugin, devils::devils_plugin, souls::souls_plugin},
+    in_game::{
+        checkpoints::checkpoint_plugin, devils::devils_plugin,
+        generate_level::level_generate_plugin, souls::souls_plugin,
+    },
     ui::colors::{DEFAULT_AMBIENT, DEFAULT_CLEAR},
 };
 
@@ -79,7 +88,11 @@ impl Plugin for InGamePlugin {
                 .run_if(input_toggle_active(false, KeyCode::F1)),
         )
         .add_systems(OnExit(AppState::InGame), (exit, clear_audio))
-        .add_systems(Update, (enable_audio).run_if(in_state(AppState::InGame)))
+        .add_systems(
+            Update,
+            (enable_audio, modify_collider_active_collision_types)
+                .run_if(in_state(AppState::InGame)),
+        )
         .add_systems(
             PreUpdate,
             run_in_game_scorers
@@ -111,10 +124,14 @@ impl Plugin for InGamePlugin {
     }
 }
 
+fn modify_collider_active_collision_types(mut active_types: Query<&mut ActiveCollisionTypes>) {
+    for mut active_types in active_types.iter_mut() {
+        *active_types = ActiveCollisionTypes::all();
+    }
+}
+
 #[dexterous_developer_setup(in_game)]
 fn reloadable(app: &mut ReloadableAppContents) {
-    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, setup);
-
     player_plugin(app);
     shadow_plugin(app);
     movement_plugin(app);
@@ -122,74 +139,11 @@ fn reloadable(app: &mut ReloadableAppContents) {
     teleport_plugin(app);
     checkpoint_plugin(app);
     devils_plugin(app);
+    level_generate_plugin(app);
 }
 
 #[derive(Component)]
 struct InGame;
-
-fn setup(
-    mut commands: Commands,
-    assets: Res<MainGameAssets>,
-    mut rng: ResMut<GlobalRng>,
-    _windows: Query<&mut Window>,
-) {
-    println!("Spawning Level");
-    let rng = rng.get_mut();
-    commands.insert_resource(ClearColor(DEFAULT_CLEAR));
-    commands.insert_resource(DEFAULT_AMBIENT);
-    commands
-        .spawn((
-            InGame,
-            TransformBundle::default(),
-            VisibilityBundle::default(),
-        ))
-        .with_children(|p| {
-            p.spawn(AudioBundle {
-                source: assets.game_music.clone(),
-                settings: PlaybackSettings {
-                    volume: Volume::Absolute(VolumeLevel::new(0.7)),
-                    ..Default::default()
-                },
-            });
-            p.spawn((SpatialBundle::default(), ConstructPlayer));
-
-            for _ in 0..15 {
-                let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
-                p.spawn((
-                    SpatialBundle {
-                        transform: Transform::from_translation(pos),
-                        ..Default::default()
-                    },
-                    Shadow {
-                        radius: rng.f32_normalized().abs() * 50. + 20.,
-                    },
-                ));
-            }
-
-            for _ in 0..2 {
-                let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
-                p.spawn((
-                    SpatialBundle {
-                        transform: Transform::from_translation(pos),
-                        ..Default::default()
-                    },
-                    Checkpoint,
-                    WithMesh::Checkpoint,
-                ));
-            }
-
-            for _ in 0..2 {
-                let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
-                p.spawn((
-                    SpatialBundle {
-                        transform: Transform::from_translation(pos),
-                        ..Default::default()
-                    },
-                    LumberingDevil,
-                ));
-            }
-        });
-}
 
 fn exit(mut commands: Commands, query: Query<Entity, With<InGame>>, _windows: Query<&mut Window>) {
     commands.insert_resource(NextState(Some(GameState::None)));

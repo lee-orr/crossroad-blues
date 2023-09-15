@@ -1,4 +1,5 @@
 use bevy::{math::Vec3Swizzles, prelude::*};
+use bevy_rapier2d::prelude::{Collider, CollidingEntities, Sensor};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use big_brain::{
@@ -77,6 +78,9 @@ pub fn spawn_lumbering_devil(
                 )
                 .otherwise(Resting),
             WithMesh::LumberingDevil,
+            Collider::ball(20.),
+            Sensor,
+            CollidingEntities::default(),
         ));
     }
 }
@@ -87,7 +91,7 @@ fn draw_devil(
     mut painter: ShapePainter,
     gizmos: Res<DrawDebugGizmos>,
 ) {
-    if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
+    if !matches!(gizmos.as_ref(), DrawDebugGizmos::InternalCircles) {
         return;
     }
 

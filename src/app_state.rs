@@ -15,5 +15,6 @@ pub enum AppState {
 pub enum DrawDebugGizmos {
     #[default]
     None,
-    Collision,
+    InternalCircles,
+    Rapier,
 }

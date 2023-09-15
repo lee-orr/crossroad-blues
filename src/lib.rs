@@ -18,6 +18,10 @@ use bevy::{
 };
 
 use bevy_inspector_egui::quick::{StateInspectorPlugin, WorldInspectorPlugin};
+use bevy_rapier2d::{
+    prelude::{NoUserData, RapierPhysicsPlugin},
+    render::{DebugRenderContext, RapierDebugRenderPlugin},
+};
 use bevy_sequential_actions::SequentialActionsPlugin;
 use bevy_turborand::prelude::RngPlugin;
 use bevy_tweening::TweeningPlugin;
@@ -59,6 +63,8 @@ fn bevy_main(initial: impl InitialPlugins) {
             RngPlugin::default(),
             TweeningPlugin,
             SequentialActionsPlugin,
+            RapierPhysicsPlugin::<NoUserData>::default(),
+            RapierDebugRenderPlugin::default().disabled(),
         ))
         .insert_resource(ClearColor(ui::colors::SCREEN_BACKGROUND_COLOR))
         .insert_resource(DEFAULT_AMBIENT)
@@ -86,9 +92,6 @@ fn bevy_main(initial: impl InitialPlugins) {
 fn setup(mut commands: Commands) {
     commands.spawn((
         Camera2dBundle {
-            camera_2d: Camera2d {
-                clear_color: ClearColorConfig::Custom(ui::colors::SCREEN_BACKGROUND_COLOR),
-            },
             tonemapping: Tonemapping::None,
             projection: OrthographicProjection {
                 scale: 0.5,
@@ -100,12 +103,21 @@ fn setup(mut commands: Commands) {
     ));
 }
 
-fn toggle_gizmos(mut commands: Commands, gizmos: Res<DrawDebugGizmos>, input: Res<Input<KeyCode>>) {
+fn toggle_gizmos(
+    mut commands: Commands,
+    gizmos: Res<DrawDebugGizmos>,
+    input: Res<Input<KeyCode>>,
+    mut rapier: ResMut<DebugRenderContext>,
+) {
     if input.just_pressed(KeyCode::F2) {
         let gizmos = match gizmos.as_ref() {
-            DrawDebugGizmos::None => DrawDebugGizmos::Collision,
-            DrawDebugGizmos::Collision => DrawDebugGizmos::None,
+            DrawDebugGizmos::None => DrawDebugGizmos::InternalCircles,
+            DrawDebugGizmos::InternalCircles => DrawDebugGizmos::Rapier,
+            DrawDebugGizmos::Rapier => DrawDebugGizmos::None,
         };
+
+        rapier.enabled = matches!(gizmos, DrawDebugGizmos::Rapier);
+
         commands.insert_resource(gizmos);
     }
 }

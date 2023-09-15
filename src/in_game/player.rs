@@ -19,6 +19,7 @@ use super::{
     InGame,
 };
 use bevy::{ecs::query::Has, prelude::*, window::PrimaryWindow};
+use bevy_rapier2d::prelude::{ActiveEvents, Collider, CollidingEntities, RigidBody, Sensor};
 use bevy_tweening::Lerp;
 use bevy_ui_dsl::*;
 use bevy_vector_shapes::{
@@ -82,6 +83,10 @@ pub fn construct_player(
                 },
                 CheckForShadow,
                 PlayerTarget(player_id),
+                Collider::ball(3.),
+                Sensor,
+                CollidingEntities::default(),
+                ActiveEvents::COLLISION_EVENTS,
             ))
             .id();
 
@@ -103,12 +108,18 @@ pub fn construct_player(
                 CheckForShadow,
                 Souls(50.),
                 MaxSouls(50.),
-                SunSensitivity(5.),
+                // SunSensitivity(5.),
                 Checkpoints {
                     checkpoints: Default::default(),
                     max_checkpoints: 3,
                 },
                 WithMesh::Player,
+                (
+                    Sensor,
+                    Collider::ball(10.),
+                    CollidingEntities::default(),
+                    ActiveEvents::COLLISION_EVENTS,
+                ),
             ));
     }
 }
@@ -126,7 +137,7 @@ pub fn draw_player(
     mut painter: ShapePainter,
     gizmos: Res<DrawDebugGizmos>,
 ) {
-    if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
+    if !matches!(gizmos.as_ref(), DrawDebugGizmos::InternalCircles) {
         return;
     }
     for (transform, in_shadow, temp, teleport) in player.iter() {
@@ -163,9 +174,9 @@ pub fn trigger_teleport(
     mut commands: Commands,
 ) {
     for (player, actions) in &player {
-        if actions.just_pressed(PlayerAction::Teleport) {
+        if actions.pressed(PlayerAction::Teleport) {
             commands.entity(player).insert(Teleporting);
-        } else if actions.just_released(PlayerAction::Teleport) {
+        } else if !actions.pressed(PlayerAction::Teleport) {
             commands.entity(player).remove::<Teleporting>();
         }
     }

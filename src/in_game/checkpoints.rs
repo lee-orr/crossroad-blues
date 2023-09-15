@@ -47,7 +47,7 @@ fn draw_checkpoint(
     mut painter: ShapePainter,
     gizmos: Res<DrawDebugGizmos>,
 ) {
-    if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
+    if !matches!(gizmos.as_ref(), DrawDebugGizmos::InternalCircles) {
         return;
     }
     painter.color = crate::ui::colors::PRIMARY_COLOR_PRIORITIZED;

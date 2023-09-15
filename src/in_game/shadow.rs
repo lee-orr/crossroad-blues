@@ -1,10 +1,11 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::{Collider, CollidingEntities, Sensor};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
 use crate::{app_state::DrawDebugGizmos, assets::WithMesh};
 
-use super::schedule::InGamePreUpdate;
+use super::{player::Player, schedule::InGamePreUpdate};
 
 pub fn shadow_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(InGamePreUpdate, (check_for_shadow, spawn_shadow))
@@ -27,7 +28,7 @@ pub fn draw_shadow(
     mut painter: ShapePainter,
     gizmos: Res<DrawDebugGizmos>,
 ) {
-    if !matches!(gizmos.as_ref(), DrawDebugGizmos::Collision) {
+    if !matches!(gizmos.as_ref(), DrawDebugGizmos::InternalCircles) {
         return;
     }
     painter.color = Color::RED;
@@ -40,16 +41,16 @@ pub fn draw_shadow(
 
 pub fn check_for_shadow(
     shadows: Query<(&GlobalTransform, &Shadow)>,
-    check_for_shadow: Query<(Entity, &GlobalTransform), With<CheckForShadow>>,
+    check_for_shadow: Query<(Entity, &GlobalTransform, &CollidingEntities), With<Player>>,
     mut commands: Commands,
 ) {
-    for (entity, check) in check_for_shadow.iter() {
-        let check_position = check.translation();
-        let in_shadow = shadows.iter().any(|(transform, shadow)| {
-            let position = transform.translation();
-            let distance = position.distance(check_position);
-            distance < shadow.radius
-        });
+    for (entity, check, colliding) in check_for_shadow.iter() {
+        println!(
+            "Checking collisions with {entity:?} - {:?}",
+            colliding.iter().collect::<Vec<_>>()
+        );
+        let in_shadow = colliding.iter().any(|a| shadows.get(a).is_ok());
+        println!("Any shadows? {in_shadow}");
 
         if in_shadow {
             commands.entity(entity).insert(InShadow);
@@ -64,8 +65,11 @@ fn spawn_shadow(
     mut commands: Commands,
 ) {
     for (entity, _transform, shadow) in &shadows {
-        commands
-            .entity(entity)
-            .insert(WithMesh::Shadow(shadow.radius));
+        commands.entity(entity).insert((
+            WithMesh::Shadow(shadow.radius),
+            Collider::ball(shadow.radius),
+            Sensor,
+            CollidingEntities::default(),
+        ));
     }
 }

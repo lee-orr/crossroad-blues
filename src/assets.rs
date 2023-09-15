@@ -27,7 +27,11 @@ pub enum WithMesh {
     LumberingDevil,
     Checkpoint,
     Shadow(f32),
+    RoadTile,
+    Pentagram,
 }
+
+pub const ROAD_TILE_SIZE: f32 = 35.;
 
 fn spawn_mesh(
     mut commands: Commands,
@@ -41,14 +45,8 @@ fn spawn_mesh(
     };
     let rng = rng.get_mut();
     for (entity, with_mesh) in &meshes {
-        let mut transform = Transform::from_scale(30. * Vec3::ONE)
-            .with_rotation(Quat::from_euler(
-                EulerRot::XYZ,
-                0., //90f32.to_radians(),
-                0., //-90f32.to_radians(),
-                0.,
-            ))
-            .with_translation(Vec3::NEG_Z * 5.);
+        let mut transform =
+            Transform::from_scale(30. * Vec3::ONE).with_translation(Vec3::NEG_Z * 5.);
 
         let mesh = match with_mesh {
             WithMesh::Player => {
@@ -66,6 +64,11 @@ fn spawn_mesh(
             WithMesh::Shadow(r) => {
                 transform.scale = Vec3::ONE * 1.8 * *r;
                 rng.sample(&assets.shadows).unwrap().clone()
+            }
+            WithMesh::RoadTile => rng.sample(&assets.roads).unwrap().clone(),
+            WithMesh::Pentagram => {
+                transform.translation.z += 1.;
+                assets.pentagram.clone()
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());

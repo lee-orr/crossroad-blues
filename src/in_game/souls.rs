@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::CollidingEntities;
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
 use super::{
@@ -82,18 +83,19 @@ pub fn take_damage(
 
 fn kill_player_on_contact(
     mut death: EventWriter<Death>,
-    players: Query<(Entity, &GlobalTransform), (With<Player>, Without<TemporaryIgnore>)>,
+    players: Query<
+        (Entity, &GlobalTransform, &CollidingEntities),
+        (With<Player>, Without<TemporaryIgnore>),
+    >,
     devils: Query<(&GlobalTransform, &Danger), Without<TemporaryIgnore>>,
 ) {
-    for (player, pos) in &players {
+    for (player, pos, coliding) in &players {
         let pos = pos.translation();
-        for (devil, radius) in &devils {
-            if pos.distance(devil.translation()) < radius.0 {
-                death.send(Death {
-                    entity: player,
-                    cause: DamageType::Devil,
-                });
-            }
+        if coliding.iter().any(|v| devils.get(v).is_ok()) {
+            death.send(Death {
+                entity: player,
+                cause: DamageType::Devil,
+            });
         }
     }
 }
