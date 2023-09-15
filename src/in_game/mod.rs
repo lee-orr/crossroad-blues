@@ -20,10 +20,6 @@ use bevy::{
     utils::HashSet,
 };
 use bevy_inspector_egui::quick::StateInspectorPlugin;
-use bevy_rapier2d::{
-    prelude::{ActiveCollisionTypes, NoUserData, RapierPhysicsPlugin},
-    render::RapierDebugRenderPlugin,
-};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 
 use big_brain::{
@@ -88,11 +84,7 @@ impl Plugin for InGamePlugin {
                 .run_if(input_toggle_active(false, KeyCode::F1)),
         )
         .add_systems(OnExit(AppState::InGame), (exit, clear_audio))
-        .add_systems(
-            Update,
-            (enable_audio, modify_collider_active_collision_types)
-                .run_if(in_state(AppState::InGame)),
-        )
+        .add_systems(Update, (enable_audio).run_if(in_state(AppState::InGame)))
         .add_systems(
             PreUpdate,
             run_in_game_scorers
@@ -121,12 +113,6 @@ impl Plugin for InGamePlugin {
                 .run_if(in_state(AppState::InGame).and_then(in_state(PauseState::None))),
         )
         .setup_reloadable_elements::<reloadable>();
-    }
-}
-
-fn modify_collider_active_collision_types(mut active_types: Query<&mut ActiveCollisionTypes>) {
-    for mut active_types in active_types.iter_mut() {
-        *active_types = ActiveCollisionTypes::all();
     }
 }
 

@@ -19,13 +19,13 @@ use super::{
     InGame,
 };
 use bevy::{ecs::query::Has, prelude::*, window::PrimaryWindow};
-use bevy_rapier2d::prelude::{ActiveEvents, Collider, CollidingEntities, RigidBody, Sensor};
 use bevy_tweening::Lerp;
 use bevy_ui_dsl::*;
 use bevy_vector_shapes::{
     prelude::ShapePainter,
     shapes::{DiscPainter, LinePainter},
 };
+use bevy_xpbd_2d::prelude::{debug::PhysicsDebugConfig, *};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use leafwing_input_manager::prelude::ActionState;
 
@@ -86,7 +86,7 @@ pub fn construct_player(
                 Collider::ball(3.),
                 Sensor,
                 CollidingEntities::default(),
-                ActiveEvents::COLLISION_EVENTS,
+                RigidBody::Kinematic,
             ))
             .id();
 
@@ -108,7 +108,7 @@ pub fn construct_player(
                 CheckForShadow,
                 Souls(50.),
                 MaxSouls(50.),
-                // SunSensitivity(5.),
+                SunSensitivity(5.),
                 Checkpoints {
                     checkpoints: Default::default(),
                     max_checkpoints: 3,
@@ -118,7 +118,7 @@ pub fn construct_player(
                     Sensor,
                     Collider::ball(10.),
                     CollidingEntities::default(),
-                    ActiveEvents::COLLISION_EVENTS,
+                    RigidBody::Kinematic,
                 ),
             ));
     }
@@ -266,7 +266,7 @@ pub fn end_game(
 }
 
 pub fn move_target(
-    mut targets: Query<(&PlayerTarget, &mut Transform)>,
+    mut targets: Query<(&PlayerTarget, &mut Position)>,
     parents: Query<&PlayerTargetReference>,
     windows: Query<&Window, With<PrimaryWindow>>,
     camera: Query<(&Camera, &GlobalTransform), With<TrackingCamera>>,
@@ -286,7 +286,7 @@ pub fn move_target(
     };
     for (parent, mut target) in targets.iter_mut() {
         if let Some(position) = set_position {
-            target.translation = Vec3::new(position.x, position.y, 0.);
+            target.0 = Vec2::new(position.x, position.y);
             continue;
         }
 
@@ -294,11 +294,11 @@ pub fn move_target(
             continue;
         };
 
-        let direction = Vec3::new(target_direction.1.x, target_direction.1.y, 0.);
+        let direction = target_direction.1;
 
         let direction = direction.normalize_or_zero() * 150. * time.delta_seconds();
 
-        target.translation += direction;
+        target.0 += direction;
     }
 }
 

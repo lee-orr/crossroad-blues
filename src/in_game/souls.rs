@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::CollidingEntities;
+use bevy_xpbd_2d::prelude::{debug::PhysicsDebugConfig, *};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
 use super::{
@@ -91,7 +91,7 @@ fn kill_player_on_contact(
 ) {
     for (player, pos, coliding) in &players {
         let pos = pos.translation();
-        if coliding.iter().any(|v| devils.get(v).is_ok()) {
+        if coliding.iter().any(|v| devils.get(*v).is_ok()) {
             death.send(Death {
                 entity: player,
                 cause: DamageType::Devil,

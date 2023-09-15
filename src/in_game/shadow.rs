@@ -1,14 +1,17 @@
-use bevy::prelude::*;
-use bevy_rapier2d::prelude::{Collider, CollidingEntities, Sensor};
+use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
+use bevy_xpbd_2d::prelude::{debug::PhysicsDebugConfig, *};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
 use crate::{app_state::DrawDebugGizmos, assets::WithMesh};
 
-use super::{player::Player, schedule::InGamePreUpdate};
+use super::{
+    player::Player,
+    schedule::{InGamePostUpdate, InGamePreUpdate},
+};
 
 pub fn shadow_plugin(app: &mut ReloadableAppContents) {
-    app.add_systems(InGamePreUpdate, (check_for_shadow, spawn_shadow))
+    app.add_systems(InGamePostUpdate, (check_for_shadow, spawn_shadow))
         .add_systems(PostUpdate, draw_shadow);
 }
 #[derive(Component)]
@@ -41,16 +44,11 @@ pub fn draw_shadow(
 
 pub fn check_for_shadow(
     shadows: Query<(&GlobalTransform, &Shadow)>,
-    check_for_shadow: Query<(Entity, &GlobalTransform, &CollidingEntities), With<Player>>,
+    check_for_shadow: Query<(Entity, &GlobalTransform, &CollidingEntities), With<CheckForShadow>>,
     mut commands: Commands,
 ) {
     for (entity, check, colliding) in check_for_shadow.iter() {
-        println!(
-            "Checking collisions with {entity:?} - {:?}",
-            colliding.iter().collect::<Vec<_>>()
-        );
-        let in_shadow = colliding.iter().any(|a| shadows.get(a).is_ok());
-        println!("Any shadows? {in_shadow}");
+        let in_shadow = colliding.iter().any(|a| shadows.get(*a).is_ok());
 
         if in_shadow {
             commands.entity(entity).insert(InShadow);
@@ -64,12 +62,14 @@ fn spawn_shadow(
     shadows: Query<(Entity, &Transform, &Shadow), (Without<Children>, Without<WithMesh>)>,
     mut commands: Commands,
 ) {
-    for (entity, _transform, shadow) in &shadows {
+    for (entity, transform, shadow) in &shadows {
         commands.entity(entity).insert((
             WithMesh::Shadow(shadow.radius),
             Collider::ball(shadow.radius),
             Sensor,
             CollidingEntities::default(),
+            RigidBody::Static,
+            Position(transform.translation.xy()),
         ));
     }
 }

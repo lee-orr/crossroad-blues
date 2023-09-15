@@ -26,7 +26,7 @@ dexterous_developer = "0.0.10"
 big-brain = "0.18"
 seldom_state = { version = "0.7", features = ["leafwing_input"] }
 noisy_bevy = "*"
-bevy_rapier2d = { version = "*", features = ["debug-render-2d"] }
+bevy_xpbd_2d = { version = "*", features = ["debug-plugin"] }
 
 [lib]
 name = "game"

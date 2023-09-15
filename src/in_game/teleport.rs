@@ -5,9 +5,11 @@ use super::shadow::InShadow;
 use super::{game_state::TemporaryIgnore, player::*};
 
 use bevy::ecs::query::Has;
+use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_tweening::lens::*;
 use bevy_tweening::*;
+use bevy_xpbd_2d::prelude::*;
 
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
@@ -141,28 +143,34 @@ pub fn run_teleport(
 
         let seq = Sequence::new([start]).then(movement).then(grow);
 
-        commands
-            .entity(entity)
-            .remove::<StartTeleport>()
-            .insert((Animator::new(seq), TemporaryIgnore));
+        commands.entity(entity).remove::<StartTeleport>().insert((
+            Animator::new(seq),
+            TemporaryIgnore,
+            RigidBody::Static,
+        ));
     }
 }
 
 const TELEPORT_COMPLETED_EVENT: u64 = 22;
 
 pub fn clear_teleport(
-    teleporters: Query<Entity>,
+    teleporters: Query<(Entity, &Transform)>,
     mut event: EventReader<TweenCompleted>,
     mut commands: Commands,
 ) {
     for event in event.iter() {
         if event.user_data == TELEPORT_COMPLETED_EVENT {
-            if let Ok(teleporter) = teleporters.get(event.entity) {
+            if let Ok((teleporter, transform)) = teleporters.get(event.entity) {
                 println!("Clearing Teleport");
                 commands
                     .entity(teleporter)
                     .remove::<Animator<Transform>>()
-                    .remove::<TemporaryIgnore>();
+                    .remove::<TemporaryIgnore>()
+                    .insert((
+                        RigidBody::Kinematic,
+                        Position(transform.translation.xy()),
+                        Rotation::from_radians(transform.rotation.z),
+                    ));
             }
         }
     }

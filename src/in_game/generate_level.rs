@@ -79,20 +79,13 @@ fn spawn_level(
 
     let default_move = CanMove::default().move_speed;
 
-    let width = level.song_length.as_secs_f32() * default_move * (0.5 + 0.5 * rng.f32());
-    let height = level.song_length.as_secs_f32() * default_move * (0.5 + 0.5 * rng.f32());
+    let width = 5. * default_move * (0.5 + 0.5 * rng.f32());
+    let height = 5. * default_move * (0.5 + 0.5 * rng.f32());
 
     let level_shapes = define_level_shape(rng, width, height);
 
     commands
-        .spawn((
-            SpatialBundle {
-                transform: Transform::from_translation(-0.5 * Vec3::new(width, height, 0.)),
-                ..Default::default()
-            },
-            InGame,
-            Name::new("Level"),
-        ))
+        .spawn((SpatialBundle::default(), InGame, Name::new("Level")))
         .with_children(|p| {
             p.spawn((SpatialBundle::default(), InGame, Name::new("Road")))
                 .with_children(|p| {
@@ -311,7 +304,7 @@ fn fill_quad(commands: &mut ChildBuilder, quad: &LevelQuad, rng: &Rng) {
 }
 
 fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, rng: &Rng) {
-    let subdivide = level > 0 && rng.bool();
+    let subdivide = level > 0 && rng.bool() && max_axis(quad) > 60.;
     if subdivide {
         let level = level - 1;
         let sub_quads = subdivide_quads(quad, rng);
@@ -349,24 +342,25 @@ fn place_trees(
     density: f32,
 ) {
     if let Some(level) = level.checked_sub(1) {
-        let sub_quads = subdivide_quads(quad, rng);
-        for quad in sub_quads.iter() {
-            place_trees(level, commands, quad, rng, density);
+        if max_axis(quad) > 60. {
+            let sub_quads = subdivide_quads(quad, rng);
+            for quad in sub_quads.iter() {
+                place_trees(level, commands, quad, rng, density);
+            }
         }
-    } else {
-        let center = quad_center(quad);
-        commands.spawn((
-            Name::new("tree shadow"),
-            InGame,
-            SpatialBundle {
-                transform: Transform::from_translation(center.extend(0.)),
-                ..Default::default()
-            },
-            Shadow {
-                radius: density * (rng.f32_normalized() * 0.1 + 1.) * dist_to_corners(quad, center),
-            },
-        ));
     }
+    let center = quad_center(quad);
+    commands.spawn((
+        Name::new("tree shadow"),
+        InGame,
+        SpatialBundle {
+            transform: Transform::from_translation(center.extend(0.)),
+            ..Default::default()
+        },
+        Shadow {
+            radius: density * (rng.f32_normalized() * 0.1 + 1.) * dist_to_corners(quad, center),
+        },
+    ));
 }
 
 fn place_danger(
@@ -377,25 +371,27 @@ fn place_danger(
     density: f32,
 ) {
     if let Some(level) = level.checked_sub(1) {
-        let sub_quads = subdivide_quads(quad, rng);
-        for quad in sub_quads.iter() {
-            place_danger(level, commands, quad, rng, density);
-        }
-    } else {
-        let place_danger = density > rng.f32();
-        if !place_danger {
+        if max_axis(quad) > 30. {
+            let sub_quads = subdivide_quads(quad, rng);
+            for quad in sub_quads.iter() {
+                place_danger(level, commands, quad, rng, density);
+            }
             return;
         }
-        let center = quad_center(quad);
-        commands.spawn((
-            InGame,
-            SpatialBundle {
-                transform: Transform::from_translation(center.extend(0.)),
-                ..Default::default()
-            },
-            LumberingDevil,
-        ));
     }
+    let place_danger = density > rng.f32();
+    if !place_danger {
+        return;
+    }
+    let center = quad_center(quad);
+    commands.spawn((
+        InGame,
+        SpatialBundle {
+            transform: Transform::from_translation(center.extend(0.)),
+            ..Default::default()
+        },
+        LumberingDevil,
+    ));
 }
 
 fn subdivide_quads(quad: &LevelQuad, rng: &Rng) -> [LevelQuad; 4] {
@@ -433,4 +429,10 @@ fn dist_to_corners(quad: &LevelQuad, point: Vec2) -> f32 {
         .min(quad.top_right.distance(point))
         .min(quad.bottom_right.distance(point))
         .min(quad.bottom_left.distance(point))
+}
+
+fn max_axis(quad: &LevelQuad) -> f32 {
+    quad.top_left
+        .distance(quad.bottom_right)
+        .max(quad.top_right.distance(quad.bottom_left))
 }

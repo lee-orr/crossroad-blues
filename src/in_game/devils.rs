@@ -1,7 +1,7 @@
 use bevy::{math::Vec3Swizzles, prelude::*};
-use bevy_rapier2d::prelude::{Collider, CollidingEntities, Sensor};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
+use bevy_xpbd_2d::prelude::{debug::PhysicsDebugConfig, *};
 use big_brain::{
     prelude::{ActionBuilder, ActionState, FirstToScore, ScorerBuilder},
     scorers::Score,
@@ -81,6 +81,7 @@ pub fn spawn_lumbering_devil(
             Collider::ball(20.),
             Sensor,
             CollidingEntities::default(),
+            RigidBody::Kinematic,
         ));
     }
 }

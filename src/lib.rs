@@ -18,10 +18,9 @@ use bevy::{
 };
 
 use bevy_inspector_egui::quick::{StateInspectorPlugin, WorldInspectorPlugin};
-use bevy_rapier2d::{
-    prelude::{NoUserData, RapierPhysicsPlugin},
-    render::{DebugRenderContext, RapierDebugRenderPlugin},
-};
+
+use bevy_xpbd_2d::prelude::{debug::PhysicsDebugConfig, *};
+
 use bevy_sequential_actions::SequentialActionsPlugin;
 use bevy_turborand::prelude::RngPlugin;
 use bevy_tweening::TweeningPlugin;
@@ -63,9 +62,12 @@ fn bevy_main(initial: impl InitialPlugins) {
             RngPlugin::default(),
             TweeningPlugin,
             SequentialActionsPlugin,
-            RapierPhysicsPlugin::<NoUserData>::default(),
-            RapierDebugRenderPlugin::default().disabled(),
+            PhysicsPlugins::new(PostUpdate),
         ))
+        .insert_resource(PhysicsDebugConfig {
+            render_aabbs: false,
+            render_contacts: false,
+        })
         .insert_resource(ClearColor(ui::colors::SCREEN_BACKGROUND_COLOR))
         .insert_resource(DEFAULT_AMBIENT)
         .init_resource::<DrawDebugGizmos>()
@@ -107,7 +109,7 @@ fn toggle_gizmos(
     mut commands: Commands,
     gizmos: Res<DrawDebugGizmos>,
     input: Res<Input<KeyCode>>,
-    mut rapier: ResMut<DebugRenderContext>,
+    mut rapier: ResMut<PhysicsDebugConfig>,
 ) {
     if input.just_pressed(KeyCode::F2) {
         let gizmos = match gizmos.as_ref() {
@@ -116,7 +118,13 @@ fn toggle_gizmos(
             DrawDebugGizmos::Rapier => DrawDebugGizmos::None,
         };
 
-        rapier.enabled = matches!(gizmos, DrawDebugGizmos::Rapier);
+        if matches!(gizmos, DrawDebugGizmos::Rapier) {
+            rapier.render_aabbs = true;
+            rapier.render_contacts = true;
+        } else {
+            rapier.render_aabbs = false;
+            rapier.render_contacts = false;
+        }
 
         commands.insert_resource(gizmos);
     }
