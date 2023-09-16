@@ -89,7 +89,7 @@ fn check_for_shadow(
 }
 
 fn spawn_shadow(
-    shadows: Query<(Entity, &GlobalTransform, &Shadow), (Without<Children>)>,
+    shadows: Query<(Entity, &GlobalTransform, &Shadow), Without<Children>>,
     mut commands: Commands,
     mut collision_grid: ResMut<ShadowCollisionGrid>,
 ) {
