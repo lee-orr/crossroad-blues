@@ -24,7 +24,6 @@ use super::{
     schedule::{InGameActions, InGamePreUpdate, InGameScorers, InGameUpdate},
     shadow::CheckForShadow,
     souls::Death,
-    InGame,
 };
 
 pub fn devils_plugin(app: &mut ReloadableAppContents) {
@@ -162,7 +161,6 @@ fn spawn_lumbering_devil(
                 Transform::from_translation(*position - transform.translation()),
                 Danger(20.),
                 CanMove { move_speed: 50. },
-                InGame,
                 CheckForShadow,
                 SpawnTime(now),
                 Restlessness {

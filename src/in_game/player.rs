@@ -26,7 +26,7 @@ use bevy_vector_shapes::{
     shapes::{DiscPainter, LinePainter},
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
-use leafwing_input_manager::{orientation::Orientation, prelude::ActionState};
+use leafwing_input_manager::prelude::ActionState;
 
 pub fn player_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(

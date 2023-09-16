@@ -81,16 +81,9 @@ fn spawn_level(
     let level_shapes = define_level_shape(rng, width, height);
 
     commands
-        .spawn((
-            SpatialBundle {
-                // transform: Transform::from_translation(-0.5 * Vec3::new(width, height, 0.)),
-                ..Default::default()
-            },
-            InGame,
-            Name::new("Level"),
-        ))
+        .spawn((InGame, SpatialBundle::default(), Name::new("Level")))
         .with_children(|p| {
-            p.spawn((SpatialBundle::default(), InGame, Name::new("Road")))
+            p.spawn((SpatialBundle::default(), Name::new("Road")))
                 .with_children(|p| {
                     for road in level_shapes.roads.iter() {
                         spawn_road_segment(p, road, rng);
@@ -106,7 +99,6 @@ fn spawn_level(
                     transform: Transform::from_translation(level_shapes.crossroads.extend(0.)),
                     ..Default::default()
                 },
-                InGame,
                 WithMesh::Pentagram,
             ));
 
@@ -119,7 +111,6 @@ fn spawn_level(
             let player_position = first_quad.point_from_normalized(player_position);
 
             p.spawn((
-                InGame,
                 SpatialBundle {
                     transform: Transform::from_translation(player_position.extend(0.)),
                     ..Default::default()
@@ -127,47 +118,6 @@ fn spawn_level(
                 ConstructPlayer,
             ));
         });
-
-    // for _ in 0..15 {
-    //     let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
-    //     commands.spawn((
-    //         SpatialBundle {
-    //             transform: Transform::from_translation(pos),
-    //             ..Default::default()
-    //         },
-    //         Shadow {
-    //             radius: rng.f32_normalized().abs() * 50. + 20.,
-    //         },
-    //         InGame,
-    //     ));
-    // }
-
-    // for _ in 0..num_checkpoints {
-    //     println!("Spawning Checkpoint");
-    //     let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
-    //     commands.spawn((
-    //         SpatialBundle {
-    //             transform: Transform::from_translation(pos),
-    //             ..Default::default()
-    //         },
-    //         Checkpoint,
-    //         WithMesh::Checkpoint,
-    //         InGame,
-    //     ));
-    // }
-
-    // for _ in 0..num_devils {
-    //     println!("Spawning Devil");
-    //     let pos = Vec3::new(rng.f32_normalized() * 300., rng.f32_normalized() * 300., 0.);
-    //     commands.spawn((
-    //         SpatialBundle {
-    //             transform: Transform::from_translation(pos),
-    //             ..Default::default()
-    //         },
-    //         LumberingDevil,
-    //         InGame,
-    //     ));
-    // }
 }
 
 fn define_level_shape(rng: &Rng, width: f32, height: f32) -> LevelShape {
@@ -271,7 +221,6 @@ fn spawn_road_segment(commands: &mut ChildBuilder, segment: &LevelRoadSegment, r
         current_t += tile_size_mod * road_tile_size_t;
         commands.spawn((
             Name::new("road segment"),
-            InGame,
             WithMesh::RoadTile,
             SpatialBundle {
                 transform: Transform::from_translation(Vec3::new(point.x, point.y, 0.))
@@ -300,7 +249,7 @@ fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, 
     } else {
         let center = quad.quad_center();
         commands
-            .spawn((SpatialBundle::default(), Name::new("Trees"), InGame))
+            .spawn((SpatialBundle::default(), Name::new("Trees")))
             .with_children(|p| {
                 let seed = rng.f32() * 1423.;
                 let tree_density = simplex_noise_2d_seeded(center, seed).abs() * 0.4 + 0.5;
@@ -309,7 +258,7 @@ fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, 
             });
 
         commands
-            .spawn((SpatialBundle::default(), Name::new("Dangers"), InGame))
+            .spawn((SpatialBundle::default(), Name::new("Dangers")))
             .with_children(|p| {
                 let seed = rng.f32() * 115834.;
                 let danger_density = simplex_noise_2d_seeded(center, seed).abs() * 0.4 + 0.2;
@@ -317,7 +266,7 @@ fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, 
             });
 
         commands
-            .spawn((SpatialBundle::default(), Name::new("Checkpoints"), InGame))
+            .spawn((SpatialBundle::default(), Name::new("Checkpoints")))
             .with_children(|p| {
                 let seed = rng.f32() * 124326.;
                 let danger_density = simplex_noise_2d_seeded(center, seed).abs() * 0.3 + 0.1;
@@ -384,7 +333,6 @@ fn place_trees(
             let radius = tree_radius * (rng.f32() * 0.2 + 0.9);
             commands.spawn((
                 Name::new("tree shadow"),
-                InGame,
                 SpatialBundle {
                     transform: Transform::from_translation(point.extend(0.)),
                     ..Default::default()
@@ -448,7 +396,6 @@ fn place_danger(
                 rng.f32_normalized() * 0.5 + 0.5,
             ));
             commands.spawn((
-                InGame,
                 SpatialBundle {
                     transform: Transform::from_translation(point.extend(0.)),
                     ..Default::default()
@@ -518,7 +465,6 @@ fn place_checkpoints(
                 },
                 Checkpoint,
                 WithMesh::Checkpoint,
-                InGame,
             ));
         }
     }

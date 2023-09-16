@@ -119,12 +119,9 @@ fn reloadable(app: &mut ReloadableAppContents) {
 #[derive(Component)]
 struct InGame;
 
-fn exit(mut commands: Commands, query: Query<Entity, With<InGame>>, _windows: Query<&mut Window>) {
+fn exit(mut commands: Commands, _query: Query<Entity, With<InGame>>, _windows: Query<&mut Window>) {
     commands.insert_resource(NextState(Some(GameState::None)));
     commands.insert_resource(NextState(Some(PauseState::None)));
-    for item in query.iter() {
-        commands.entity(item).despawn_recursive();
-    }
 }
 
 fn clear_audio(audio: Query<&AudioSink>) {
