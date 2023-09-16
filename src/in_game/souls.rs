@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
 use super::{
-    devils::Danger, game_state::TemporaryIgnore, player::Player, schedule::InGameUpdate,
+    danger::Danger, game_state::TemporaryIgnore, player::Player, schedule::InGameUpdate,
     shadow::InShadow,
 };
 

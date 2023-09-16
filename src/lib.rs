@@ -1,4 +1,5 @@
 #![allow(clippy::type_complexity)]
+#![feature(iter_map_windows)]
 mod app_state;
 mod assets;
 mod in_game;

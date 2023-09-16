@@ -1,4 +1,4 @@
-use std::{f32::consts, ops::Range, sync::Arc, time::Duration};
+use std::{f32::consts, sync::Arc, time::Duration};
 
 use bevy::{
     audio::{Volume, VolumeLevel},
@@ -15,7 +15,7 @@ use crate::{
 };
 
 use super::{
-    checkpoints::Checkpoint, devils::LumberingDevil, movement::CanMove, player::ConstructPlayer,
+    checkpoints::Checkpoint, danger::LumberingDevil, movement::CanMove, player::ConstructPlayer,
     shadow::Shadow, InGame,
 };
 
@@ -30,8 +30,8 @@ pub struct CurrentLevel {
     pub song_length: Duration,
     pub bg_color: Color,
     pub ambient: AmbientLight,
-    pub num_devils: Range<usize>,
-    pub num_checkpoints: Range<usize>,
+    pub curviness: f32,
+    pub num_segments: usize,
 }
 
 impl Default for CurrentLevel {
@@ -41,8 +41,8 @@ impl Default for CurrentLevel {
             song_length: Duration::from_secs(153),
             bg_color: SCREEN_BACKGROUND_COLOR,
             ambient: DEFAULT_AMBIENT,
-            num_checkpoints: 3..5,
-            num_devils: 4..6,
+            curviness: 120.,
+            num_segments: 7,
         }
     }
 }
@@ -67,18 +67,14 @@ fn spawn_level(
         InGame,
     ));
 
-    let num_checkpoints = level.num_checkpoints.clone().collect::<Arc<[_]>>();
-    let num_devils = level.num_devils.clone().collect::<Arc<[_]>>();
-
-    let _num_checkpoints = rng.sample(&num_checkpoints).cloned().unwrap_or(1);
-    let _num_devils = rng.sample(&num_devils).cloned().unwrap_or(1);
-
     let default_move = CanMove::default().move_speed;
 
-    let width = level.song_length.as_secs_f32() * default_move * (0.5 + 0.3 * rng.f32()) / 2.;
-    let height = level.song_length.as_secs_f32() * default_move * (0.5 + 0.3 * rng.f32()) / 2.;
-
-    let level_shapes = define_level_shape(rng, width, height);
+    let level_shapes = define_level_shape(
+        rng,
+        level.song_length.as_secs_f32() * default_move * (0.5 + 0.3 * rng.f32()) / 2.,
+        level.curviness,
+        level.num_segments,
+    );
 
     commands
         .spawn((InGame, SpatialBundle::default(), Name::new("Level")))
@@ -102,17 +98,11 @@ fn spawn_level(
                 WithMesh::Pentagram,
             ));
 
-            let player_position = Vec2::new(rng.f32() * 0.1, rng.f32() * 0.1);
-            let first_section = level_shapes
-                .section
-                .first()
-                .cloned()
-                .unwrap_or((Vec2::ZERO, Vec2::Y, Vec2::ONE, Vec2::X).into());
-            let player_position = first_section.point_from_normalized(player_position);
-
             p.spawn((
                 SpatialBundle {
-                    transform: Transform::from_translation(player_position.extend(0.)),
+                    transform: Transform::from_translation(
+                        level_shapes.player_start_point.extend(0.),
+                    ),
                     ..Default::default()
                 },
                 ConstructPlayer,
@@ -120,94 +110,103 @@ fn spawn_level(
         });
 }
 
-fn define_level_shape(rng: &Rng, width: f32, height: f32) -> LevelShape {
-    let start_pos = rng.f32() * 0.2 + 0.15;
-    let end_pos = rng.f32() * 0.2 + 0.65;
-    let start_pos_2 = rng.f32() * 0.2 + 0.9;
-    let end_pos_2 = rng.f32() * 0.2 + 0.4;
+fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -> LevelShape {
+    let start_pos = Vec2::ZERO;
+    let crossroads = Vec2::X * length + Vec2::Y * curviness * rng.f32_normalized();
+    let end_pos = crossroads + Vec2::X * 600. + Vec2::Y * curviness * rng.f32_normalized();
 
-    let start_pos = edge_position_to_coord(start_pos, width, height);
-    let end_pos = edge_position_to_coord(end_pos, width, height);
-    let start_pos_2 = edge_position_to_coord(start_pos_2, width, height);
-    let end_pos_2 = edge_position_to_coord(end_pos_2, width, height);
+    let segments = ([0f32].into_iter())
+        .chain(
+            (1..segments)
+                .map(|v| v as f32)
+                .map(|v| v + rng.f32_normalized() * 0.2)
+                .map(|v| v / (segments as f32)),
+        )
+        .chain([1f32])
+        .collect::<Box<[_]>>();
 
-    let crossroads =
-        Vec2::new(width, height) * Vec2::new(rng.f32() * 0.1 + 0.45, rng.f32() * 0.1 + 0.45);
+    let target_path = segments
+        .iter()
+        .map(|v| {
+            (
+                start_pos.lerp(crossroads, *v) + Vec2::Y * curviness * rng.f32_normalized(),
+                *v,
+            )
+        })
+        .collect::<Arc<[_]>>();
 
-    let roads = [
-        (start_pos, crossroads, true),
-        (crossroads, end_pos, false),
-        (start_pos_2, crossroads, false),
-        (crossroads, end_pos_2, false),
-    ]
-    .iter()
-    .map(|(start, end, _traverse)| LevelRoadSegment {
-        start: *start,
-        end: *end,
-        // traversal: if *traverse { Some((0., 1.)) } else { None },
-    })
-    .collect();
+    let crossroads = target_path.last().map(|(v, _)| *v).unwrap_or(crossroads);
 
-    let sections = [
-        (
-            push_section_point(start_pos, start_pos_2, crossroads, rng),
-            start_pos,
-            crossroads,
-            start_pos_2,
-        ),
-        (
-            start_pos,
-            push_section_point(start_pos, end_pos_2, crossroads, rng),
-            end_pos_2,
-            crossroads,
-        ),
-        (
-            crossroads,
-            end_pos_2,
-            push_section_point(end_pos_2, end_pos, crossroads, rng),
-            end_pos,
-        ),
-        (
-            start_pos_2,
-            crossroads,
-            end_pos,
-            push_section_point(end_pos, start_pos_2, crossroads, rng),
-        ),
-    ]
-    .iter()
-    .map(LevelSections::from)
-    .collect();
+    let cross_road_points = [
+        crossroads - Vec2::Y * 600.,
+        crossroads,
+        crossroads + Vec2::Y * 600.,
+    ];
+
+    let roads = target_path
+        .iter()
+        .map_windows(|[a, b]| LevelRoadSegment {
+            start: a.0,
+            end: b.0,
+        })
+        .chain(
+            cross_road_points
+                .iter()
+                .map_windows(|[a, b]| LevelRoadSegment {
+                    start: **a,
+                    end: **b,
+                }),
+        )
+        .chain([LevelRoadSegment {
+            start: crossroads,
+            end: end_pos,
+        }])
+        .collect::<Arc<[_]>>();
+
+    let sections = target_path
+        .iter()
+        .map_windows(|[a, b]| {
+            (
+                a.0 + Vec2::Y * 50. - Vec2::X * 50.,
+                a.0 + Vec2::Y * 650. - Vec2::X * 50.,
+                b.0 + Vec2::Y * 650. - Vec2::X * 50.,
+                b.0 + Vec2::Y * 50. - Vec2::X * 50.,
+            )
+        })
+        .chain(target_path.iter().map_windows(|[a, b]| {
+            (
+                a.0 - Vec2::Y * 650. - Vec2::X * 50.,
+                a.0 - Vec2::Y * 50. - Vec2::X * 50.,
+                b.0 - Vec2::Y * 50. - Vec2::X * 50.,
+                b.0 - Vec2::Y * 650. - Vec2::X * 50.,
+            )
+        }))
+        .chain([
+            (
+                crossroads - Vec2::Y * 650.,
+                crossroads - Vec2::Y * 50. + Vec2::X * 50.,
+                end_pos - Vec2::Y * 50.,
+                end_pos - Vec2::Y * 300.,
+            ),
+            (
+                crossroads + Vec2::Y * 650.,
+                crossroads + Vec2::Y * 50. + Vec2::X * 50.,
+                end_pos + Vec2::Y * 50.,
+                end_pos + Vec2::Y * 300.,
+            ),
+        ])
+        .map(LevelSections::from)
+        .collect();
 
     LevelShape {
         crossroads,
         roads,
+        target_path,
         section: sections,
+        player_start_point: start_pos,
     }
 }
 
-fn edge_position_to_coord(pos: f32, width: f32, height: f32) -> Vec2 {
-    let pos = pos % 1.;
-    let pos = pos * 4.;
-    let offset = pos % 1.;
-
-    if pos < 1. {
-        Vec2::Y * offset * height
-    } else if pos < 2. {
-        Vec2::new(offset * width, height)
-    } else if pos < 3. {
-        Vec2::new(width, (1. - offset) * height)
-    } else {
-        Vec2::X * (1. - offset) * width
-    }
-}
-
-fn push_section_point(p1: Vec2, p2: Vec2, opposite: Vec2, rng: &Rng) -> Vec2 {
-    let midpoint = (p2 - p1) / 2. + p1;
-
-    let diff = midpoint - opposite;
-
-    midpoint + diff * (rng.f32() / 2.)
-}
 fn spawn_road_segment(commands: &mut ChildBuilder, segment: &LevelRoadSegment, rng: &Rng) {
     let start = segment.start;
     let diff = segment.end - segment.start;
@@ -485,18 +484,20 @@ fn randomized_midpoint(a: &Vec2, b: &Vec2, rng: &Rng) -> Vec2 {
     (*a - *b) * (rng.f32_normalized() * 0.1 + 0.5) + *b
 }
 
-struct LevelShape {
-    crossroads: Vec2,
-    roads: Arc<[LevelRoadSegment]>,
-    section: Arc<[LevelSections]>,
+pub struct LevelShape {
+    pub crossroads: Vec2,
+    pub roads: Arc<[LevelRoadSegment]>,
+    pub target_path: Arc<[(Vec2, f32)]>,
+    pub section: Arc<[LevelSections]>,
+    pub player_start_point: Vec2,
 }
 
 #[derive(Debug, Clone)]
-struct LevelSections {
-    top_left: Vec2,
-    top_right: Vec2,
-    bottom_left: Vec2,
-    bottom_right: Vec2,
+pub struct LevelSections {
+    pub top_left: Vec2,
+    pub top_right: Vec2,
+    pub bottom_left: Vec2,
+    pub bottom_right: Vec2,
 }
 
 impl LevelSections {
@@ -563,7 +564,7 @@ impl From<(Vec2, Vec2, Vec2, Vec2)> for LevelSections {
         LevelSections::from(&value)
     }
 }
-struct LevelRoadSegment {
-    start: Vec2,
-    end: Vec2,
+pub struct LevelRoadSegment {
+    pub start: Vec2,
+    pub end: Vec2,
 }

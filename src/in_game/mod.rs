@@ -1,6 +1,6 @@
 mod actions;
 mod checkpoints;
-mod devils;
+mod danger;
 mod game_completed;
 mod game_over;
 mod game_state;
@@ -26,7 +26,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 
 use crate::{
     app_state::AppState,
-    in_game::{checkpoints::checkpoint_plugin, devils::devils_plugin, souls::souls_plugin},
+    in_game::{checkpoints::checkpoint_plugin, danger::danger_plugin, souls::souls_plugin},
 };
 
 use self::{
@@ -112,7 +112,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
     souls_plugin(app);
     teleport_plugin(app);
     checkpoint_plugin(app);
-    devils_plugin(app);
+    danger_plugin(app);
     level_generate_plugin(app);
 }
 

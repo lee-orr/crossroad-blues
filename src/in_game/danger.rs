@@ -26,7 +26,7 @@ use super::{
     souls::Death,
 };
 
-pub fn devils_plugin(app: &mut ReloadableAppContents) {
+pub fn danger_plugin(app: &mut ReloadableAppContents) {
     app.add_systems(InGamePreUpdate, spawn_lumbering_devil)
         .add_systems(InGameScorers, (restless_scorer_system, chase_scorer_system))
         .add_systems(
@@ -37,10 +37,10 @@ pub fn devils_plugin(app: &mut ReloadableAppContents) {
                 chasing_action_system,
             ),
         )
-        .add_systems(InGameUpdate, (restlessness_system, mark_teleported_devil))
+        .add_systems(InGameUpdate, (restlessness_system, mark_teleported_danger))
         .add_systems(
             PostUpdate,
-            (draw_devil, despawn_devil, setup_danger_in_grid),
+            (draw_danger, despawn_danger, setup_danger_in_grid),
         )
         .add_systems(OnExit(AppState::InGame), clear_grid)
         .reset_resource::<CollisionGrid>();
@@ -87,35 +87,35 @@ impl std::hash::Hash for DangerInGrid {
 pub struct LumberingDevil;
 
 fn setup_danger_in_grid(
-    devils: Query<
+    dangers: Query<
         (Entity, &GlobalTransform),
         (With<LumberingDevil>, Without<DangerAwaits>, Without<Danger>),
     >,
     mut grid: ResMut<CollisionGrid>,
     mut commands: Commands,
 ) {
-    for (devil, transform) in &devils {
+    for (danger, transform) in &dangers {
         let pos = transform.translation().xy() / COLLISION_CELL_SIZE;
         let cell = (pos.x.floor() as i32, pos.y.floor() as i32);
         let cell_container = grid.map.entry(cell).or_default();
-        cell_container.insert(DangerInGrid(devil, transform.translation()));
-        commands.entity(devil).insert(DangerAwaits);
+        cell_container.insert(DangerInGrid(danger, transform.translation()));
+        commands.entity(danger).insert(DangerAwaits);
     }
 }
 
-fn mark_teleported_devil(
-    devils: Query<Entity, (With<TemporaryIgnore>, With<Danger>)>,
+fn mark_teleported_danger(
+    dangers: Query<Entity, (With<TemporaryIgnore>, With<Danger>)>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
     let now = time.elapsed_seconds();
-    for devil in &devils {
-        commands.entity(devil).insert(SpawnTime(now));
+    for danger in &dangers {
+        commands.entity(danger).insert(SpawnTime(now));
     }
 }
 
 fn spawn_lumbering_devil(
-    devils: Query<(Entity, &Parent), (With<LumberingDevil>, With<DangerAwaits>, Without<Danger>)>,
+    dangers: Query<(Entity, &Parent), (With<LumberingDevil>, With<DangerAwaits>, Without<Danger>)>,
     mut commands: Commands,
     parents: Query<&GlobalTransform, With<Parent>>,
     grid: Res<CollisionGrid>,
@@ -145,20 +145,20 @@ fn spawn_lumbering_devil(
         let Some(grid_cell) = grid.map.get(cell) else {
             continue;
         };
-        for DangerInGrid(devil, position) in grid_cell.iter() {
-            let Ok((devil, parent)) = devils.get(*devil) else {
+        for DangerInGrid(danger, position) in grid_cell.iter() {
+            let Ok((danger, parent)) = dangers.get(*danger) else {
                 continue;
             };
 
             let Ok(transform) = parents.get(parent.get()) else {
-                error!("Cant get devil's parent object");
+                error!("Cant get danger's parent object");
                 continue;
             };
-            let Some(mut devil) = commands.get_entity(devil) else {
-                error!("Devil does not exist");
+            let Some(mut danger) = commands.get_entity(danger) else {
+                error!("Danger does not exist");
                 continue;
             };
-            devil.remove::<DangerAwaits>().insert((
+            danger.remove::<DangerAwaits>().insert((
                 Name::new("Lumbering Devil"),
                 Transform::from_translation(*position - transform.translation()),
                 Danger(20.),
@@ -195,22 +195,25 @@ fn spawn_lumbering_devil(
     }
 }
 
-fn despawn_devil(
-    devils: Query<(Entity, &GlobalTransform, &SpawnTime), (With<Danger>, Without<TemporaryIgnore>)>,
+fn despawn_danger(
+    dangers: Query<
+        (Entity, &GlobalTransform, &SpawnTime),
+        (With<Danger>, Without<TemporaryIgnore>),
+    >,
     player: Query<&GlobalTransform, With<Player>>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
     let now = time.elapsed_seconds();
     let positions = player.iter().map(|v| v.translation()).collect::<Box<[_]>>();
-    for (devil, transform, spawn_time) in &devils {
+    for (danger, transform, spawn_time) in &dangers {
         if now - spawn_time.0 < 20. {
             continue;
         }
         let pos = transform.translation();
         if positions.iter().all(|v| v.distance(pos) > DESPAWN_DISTANCE) {
             commands
-                .entity(devil)
+                .entity(danger)
                 .remove::<Danger>()
                 .remove::<Thinker>()
                 .remove::<CanMove>()
@@ -224,9 +227,9 @@ fn despawn_devil(
     }
 }
 
-fn draw_devil(
-    devils: Query<(&GlobalTransform, &HasThinker, &Danger, &Restlessness)>,
-    devils_await: Query<(&GlobalTransform, &DangerAwaits)>,
+fn draw_danger(
+    dangers: Query<(&GlobalTransform, &HasThinker, &Danger, &Restlessness)>,
+    dangers_await: Query<(&GlobalTransform, &DangerAwaits)>,
     thinkers: Query<&Thinker>,
     mut painter: ShapePainter,
     gizmos: Res<DrawDebugGizmos>,
@@ -235,10 +238,10 @@ fn draw_devil(
         return;
     }
 
-    for (devil, thinker, danger, restlessness) in devils.iter() {
+    for (transform, thinker, danger, restlessness) in dangers.iter() {
         painter.color = Color::PINK;
         painter.hollow = true;
-        painter.set_translation(devil.translation());
+        painter.set_translation(transform.translation());
         painter.circle(danger.0);
         let Ok(thinker) = thinkers.get(thinker.entity()) else {
             continue;
@@ -260,10 +263,10 @@ fn draw_devil(
         painter.circle((restlessness.current_restlessness / 100.) * (danger.0 / 2.));
     }
 
-    for (devil, _) in &devils_await {
+    for (danger, _) in &dangers_await {
         painter.color = Color::BLUE;
         painter.hollow = false;
-        painter.set_translation(devil.translation());
+        painter.set_translation(danger.translation());
         painter.circle(15.);
     }
 }
@@ -465,15 +468,15 @@ struct Chase {
 }
 
 fn chase_scorer_system(
-    devils: Query<&GlobalTransform, With<Danger>>,
+    dangers: Query<&GlobalTransform, With<Danger>>,
     players: Query<&GlobalTransform, With<Player>>,
     mut query: Query<(&Actor, &mut Score, &Chase)>,
 ) {
     for (Actor(actor), mut score, chase) in &mut query {
-        if let Ok(devil) = devils.get(*actor) {
-            let devil = devil.translation();
+        if let Ok(danger) = dangers.get(*actor) {
+            let danger = danger.translation();
             for player in &players {
-                let distance = devil.distance(player.translation());
+                let distance = danger.distance(player.translation());
                 let s = (distance - chase.trigger_distance).max(0.)
                     / (chase.max_distance - chase.trigger_distance);
                 let s = 1. - s.clamp(0., 1.);

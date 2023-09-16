@@ -9,7 +9,7 @@ use crate::{
 use super::{
     actions::{input_manager, PlayerAction},
     checkpoints::Checkpoints,
-    devils::Danger,
+    danger::Danger,
     game_state::{GameState, TemporaryIgnore},
     movement::{CanMove, Moving},
     schedule::{InGamePreUpdate, InGameUpdate},
