@@ -90,8 +90,8 @@ fn spawn_level(
                     }
                 });
 
-            for quad in level_shapes.quads.iter() {
-                fill_quad(p, quad, rng);
+            for section in level_shapes.section.iter() {
+                fill_section(p, section, rng);
             }
 
             p.spawn((
@@ -103,12 +103,12 @@ fn spawn_level(
             ));
 
             let player_position = Vec2::new(rng.f32() * 0.1, rng.f32() * 0.1);
-            let first_quad = level_shapes
-                .quads
+            let first_section = level_shapes
+                .section
                 .first()
                 .cloned()
                 .unwrap_or((Vec2::ZERO, Vec2::Y, Vec2::ONE, Vec2::X).into());
-            let player_position = first_quad.point_from_normalized(player_position);
+            let player_position = first_section.point_from_normalized(player_position);
 
             p.spawn((
                 SpatialBundle {
@@ -148,40 +148,40 @@ fn define_level_shape(rng: &Rng, width: f32, height: f32) -> LevelShape {
     })
     .collect();
 
-    let quads = [
+    let sections = [
         (
-            push_quad_point(start_pos, start_pos_2, crossroads, rng),
+            push_section_point(start_pos, start_pos_2, crossroads, rng),
             start_pos,
             crossroads,
             start_pos_2,
         ),
         (
             start_pos,
-            push_quad_point(start_pos, end_pos_2, crossroads, rng),
+            push_section_point(start_pos, end_pos_2, crossroads, rng),
             end_pos_2,
             crossroads,
         ),
         (
             crossroads,
             end_pos_2,
-            push_quad_point(end_pos_2, end_pos, crossroads, rng),
+            push_section_point(end_pos_2, end_pos, crossroads, rng),
             end_pos,
         ),
         (
             start_pos_2,
             crossroads,
             end_pos,
-            push_quad_point(end_pos, start_pos_2, crossroads, rng),
+            push_section_point(end_pos, start_pos_2, crossroads, rng),
         ),
     ]
     .iter()
-    .map(LevelQuad::from)
+    .map(LevelSections::from)
     .collect();
 
     LevelShape {
         crossroads,
         roads,
-        quads,
+        section: sections,
     }
 }
 
@@ -201,7 +201,7 @@ fn edge_position_to_coord(pos: f32, width: f32, height: f32) -> Vec2 {
     }
 }
 
-fn push_quad_point(p1: Vec2, p2: Vec2, opposite: Vec2, rng: &Rng) -> Vec2 {
+fn push_section_point(p1: Vec2, p2: Vec2, opposite: Vec2, rng: &Rng) -> Vec2 {
     let midpoint = (p2 - p1) / 2. + p1;
 
     let diff = midpoint - opposite;
@@ -232,29 +232,34 @@ fn spawn_road_segment(commands: &mut ChildBuilder, segment: &LevelRoadSegment, r
     }
 }
 
-fn fill_quad(commands: &mut ChildBuilder, quad: &LevelQuad, rng: &Rng) {
-    fill_quad_inner(1, commands, quad, rng);
+fn fill_section(commands: &mut ChildBuilder, section: &LevelSections, rng: &Rng) {
+    fill_section_inner(1, commands, section, rng);
 }
 
-const MIN_QUAD_SIZE: f32 = 100.;
+const MIN_SECTION_SIZE: f32 = 100.;
 
-fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, rng: &Rng) {
-    let subdivide = level > 0 && rng.bool() && quad.size_min() > MIN_QUAD_SIZE;
+fn fill_section_inner(
+    level: usize,
+    commands: &mut ChildBuilder,
+    section: &LevelSections,
+    rng: &Rng,
+) {
+    let subdivide = level > 0 && rng.bool() && section.size_min() > MIN_SECTION_SIZE;
     if subdivide {
         let level = level - 1;
-        let sub_quads = quad.subdivide_quads(rng);
-        for quad in sub_quads.iter() {
-            fill_quad_inner(level, commands, quad, rng);
+        let sub_sections = section.subdivide_sections(rng);
+        for section in sub_sections.iter() {
+            fill_section_inner(level, commands, section, rng);
         }
     } else {
-        let center = quad.quad_center();
+        let center = section.section_center();
         commands
             .spawn((SpatialBundle::default(), Name::new("Trees")))
             .with_children(|p| {
                 let seed = rng.f32() * 1423.;
                 let tree_density = simplex_noise_2d_seeded(center, seed).abs() * 0.4 + 0.5;
 
-                place_trees(2, p, quad, rng, tree_density);
+                place_trees(2, p, section, rng, tree_density);
             });
 
         commands
@@ -262,7 +267,7 @@ fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, 
             .with_children(|p| {
                 let seed = rng.f32() * 115834.;
                 let danger_density = simplex_noise_2d_seeded(center, seed).abs() * 0.4 + 0.2;
-                place_danger(2, p, quad, rng, danger_density);
+                place_danger(2, p, section, rng, danger_density);
             });
 
         commands
@@ -270,7 +275,7 @@ fn fill_quad_inner(level: usize, commands: &mut ChildBuilder, quad: &LevelQuad, 
             .with_children(|p| {
                 let seed = rng.f32() * 124326.;
                 let danger_density = simplex_noise_2d_seeded(center, seed).abs() * 0.3 + 0.1;
-                place_checkpoints(3, p, quad, rng, danger_density);
+                place_checkpoints(3, p, section, rng, danger_density);
             });
     }
 }
@@ -280,23 +285,23 @@ const TREE_SIZES: &[f32] = &[1000., 500., 100.];
 fn place_trees(
     level: usize,
     commands: &mut ChildBuilder,
-    quad: &LevelQuad,
+    section: &LevelSections,
     rng: &Rng,
     density: f32,
 ) {
-    let main_axis = quad.main_axis_min_length();
-    let cross_axis = quad.cross_axis_min_length();
+    let main_axis = section.main_axis_min_length();
+    let cross_axis = section.cross_axis_min_length();
 
     let Some(size) = TREE_SIZES.get(level) else {
         if level > TREE_SIZES.len() && !TREE_SIZES.is_empty() {
-            place_trees(TREE_SIZES.len() - 1, commands, quad, rng, density);
+            place_trees(TREE_SIZES.len() - 1, commands, section, rng, density);
         }
         error!("No tree sizes available");
         return;
     };
 
     if (main_axis < *size || cross_axis < *size) && level > 0 {
-        place_trees(level - 1, commands, quad, rng, density);
+        place_trees(level - 1, commands, section, rng, density);
         return;
     }
 
@@ -312,11 +317,11 @@ fn place_trees(
         for y in 0..cross_tiles {
             let x = (x as f32) * main_step;
             let y = (y as f32) * cross_step;
-            let inner = LevelQuad {
-                top_left: quad.point_from_normalized(Vec2::new(x, y + cross_step)),
-                top_right: quad.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
-                bottom_left: quad.point_from_normalized(Vec2::new(x, y)),
-                bottom_right: quad.point_from_normalized(Vec2::new(x + main_step, y)),
+            let inner = LevelSections {
+                top_left: section.point_from_normalized(Vec2::new(x, y + cross_step)),
+                top_right: section.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
+                bottom_left: section.point_from_normalized(Vec2::new(x, y)),
+                bottom_right: section.point_from_normalized(Vec2::new(x + main_step, y)),
             };
 
             let spawn_here = rng.f32() < density;
@@ -348,23 +353,23 @@ const DANGER_DISTANCES: &[f32] = &[1000., 500., 300.];
 fn place_danger(
     level: usize,
     commands: &mut ChildBuilder,
-    quad: &LevelQuad,
+    section: &LevelSections,
     rng: &Rng,
     density: f32,
 ) {
-    let main_axis = quad.main_axis_min_length();
-    let cross_axis = quad.cross_axis_min_length();
+    let main_axis = section.main_axis_min_length();
+    let cross_axis = section.cross_axis_min_length();
 
     let Some(size) = DANGER_DISTANCES.get(level) else {
         if level > DANGER_DISTANCES.len() && !DANGER_DISTANCES.is_empty() {
-            place_danger(DANGER_DISTANCES.len() - 1, commands, quad, rng, density);
+            place_danger(DANGER_DISTANCES.len() - 1, commands, section, rng, density);
         }
         error!("No danger distances available");
         return;
     };
 
     if (main_axis < *size || cross_axis < *size) && level > 0 {
-        place_danger(level - 1, commands, quad, rng, density);
+        place_danger(level - 1, commands, section, rng, density);
         return;
     }
 
@@ -377,11 +382,11 @@ fn place_danger(
         for y in 0..cross_tiles {
             let x = (x as f32) * main_step;
             let y = (y as f32) * cross_step;
-            let inner = LevelQuad {
-                top_left: quad.point_from_normalized(Vec2::new(x, y + cross_step)),
-                top_right: quad.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
-                bottom_left: quad.point_from_normalized(Vec2::new(x, y)),
-                bottom_right: quad.point_from_normalized(Vec2::new(x + main_step, y)),
+            let inner = LevelSections {
+                top_left: section.point_from_normalized(Vec2::new(x, y + cross_step)),
+                top_right: section.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
+                bottom_left: section.point_from_normalized(Vec2::new(x, y)),
+                bottom_right: section.point_from_normalized(Vec2::new(x + main_step, y)),
             };
 
             let spawn_here = rng.f32() < density;
@@ -411,23 +416,29 @@ const CHECKPOINT_DISTANCES: &[f32] = &[1200., 600., 400., 200.];
 fn place_checkpoints(
     level: usize,
     commands: &mut ChildBuilder,
-    quad: &LevelQuad,
+    section: &LevelSections,
     rng: &Rng,
     density: f32,
 ) {
-    let main_axis = quad.main_axis_min_length();
-    let cross_axis = quad.cross_axis_min_length();
+    let main_axis = section.main_axis_min_length();
+    let cross_axis = section.cross_axis_min_length();
 
     let Some(size) = CHECKPOINT_DISTANCES.get(level) else {
         if level > CHECKPOINT_DISTANCES.len() && !CHECKPOINT_DISTANCES.is_empty() {
-            place_checkpoints(CHECKPOINT_DISTANCES.len() - 1, commands, quad, rng, density);
+            place_checkpoints(
+                CHECKPOINT_DISTANCES.len() - 1,
+                commands,
+                section,
+                rng,
+                density,
+            );
         }
         error!("No danger distances available");
         return;
     };
 
     if (main_axis < *size || cross_axis < *size) && level > 0 {
-        place_checkpoints(level - 1, commands, quad, rng, density);
+        place_checkpoints(level - 1, commands, section, rng, density);
         return;
     }
 
@@ -440,11 +451,11 @@ fn place_checkpoints(
         for y in 0..cross_tiles {
             let x = (x as f32) * main_step;
             let y = (y as f32) * cross_step;
-            let inner = LevelQuad {
-                top_left: quad.point_from_normalized(Vec2::new(x, y + cross_step)),
-                top_right: quad.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
-                bottom_left: quad.point_from_normalized(Vec2::new(x, y)),
-                bottom_right: quad.point_from_normalized(Vec2::new(x + main_step, y)),
+            let inner = LevelSections {
+                top_left: section.point_from_normalized(Vec2::new(x, y + cross_step)),
+                top_right: section.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
+                bottom_left: section.point_from_normalized(Vec2::new(x, y)),
+                bottom_right: section.point_from_normalized(Vec2::new(x + main_step, y)),
             };
 
             let spawn_here = rng.f32() < density;
@@ -477,19 +488,19 @@ fn randomized_midpoint(a: &Vec2, b: &Vec2, rng: &Rng) -> Vec2 {
 struct LevelShape {
     crossroads: Vec2,
     roads: Arc<[LevelRoadSegment]>,
-    quads: Arc<[LevelQuad]>,
+    section: Arc<[LevelSections]>,
 }
 
 #[derive(Debug, Clone)]
-struct LevelQuad {
+struct LevelSections {
     top_left: Vec2,
     top_right: Vec2,
     bottom_left: Vec2,
     bottom_right: Vec2,
 }
 
-impl LevelQuad {
-    fn quad_center(&self) -> Vec2 {
+impl LevelSections {
+    fn section_center(&self) -> Vec2 {
         (self.top_left + self.top_right + self.bottom_left + self.bottom_right) / 4.
     }
 
@@ -508,8 +519,8 @@ impl LevelQuad {
             .distance(self.top_right)
             .min(self.bottom_left.distance(self.bottom_right))
     }
-    fn subdivide_quads(&self, rng: &Rng) -> [LevelQuad; 4] {
-        let LevelQuad {
+    fn subdivide_sections(&self, rng: &Rng) -> [LevelSections; 4] {
+        let LevelSections {
             top_left,
             top_right,
             bottom_left,
@@ -536,7 +547,7 @@ impl LevelQuad {
     }
 }
 
-impl From<&(Vec2, Vec2, Vec2, Vec2)> for LevelQuad {
+impl From<&(Vec2, Vec2, Vec2, Vec2)> for LevelSections {
     fn from((bottom_left, top_left, top_right, bottom_right): &(Vec2, Vec2, Vec2, Vec2)) -> Self {
         Self {
             top_left: *top_left,
@@ -547,9 +558,9 @@ impl From<&(Vec2, Vec2, Vec2, Vec2)> for LevelQuad {
     }
 }
 
-impl From<(Vec2, Vec2, Vec2, Vec2)> for LevelQuad {
+impl From<(Vec2, Vec2, Vec2, Vec2)> for LevelSections {
     fn from(value: (Vec2, Vec2, Vec2, Vec2)) -> Self {
-        LevelQuad::from(&value)
+        LevelSections::from(&value)
     }
 }
 struct LevelRoadSegment {
