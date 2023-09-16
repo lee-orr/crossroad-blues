@@ -17,7 +17,7 @@ pub fn shadow_plugin(app: &mut ReloadableAppContents) {
     app.reset_resource::<ShadowCollisionGrid>()
         .add_systems(InGamePreUpdate, (check_for_shadow, spawn_shadow))
         .add_systems(PostUpdate, draw_shadow)
-        .add_systems(OnEnter(AppState::InGame), clear_grid);
+        .add_systems(OnExit(AppState::InGame), clear_grid);
 }
 
 const SHADOW_COLLISION_CELL_SIZE: f32 = 2000.;

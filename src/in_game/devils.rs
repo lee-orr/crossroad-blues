@@ -42,7 +42,7 @@ pub fn devils_plugin(app: &mut ReloadableAppContents) {
             PostUpdate,
             (draw_devil, despawn_devil, setup_danger_in_grid),
         )
-        .add_systems(OnEnter(AppState::InGame), clear_grid)
+        .add_systems(OnExit(AppState::InGame), clear_grid)
         .reset_resource::<CollisionGrid>();
 }
 
@@ -137,6 +137,7 @@ fn spawn_lumbering_devil(
 
     if adjacent_cells.is_empty() {
         error!("No adjacent cells!");
+        return;
     }
     let now = time.elapsed_seconds();
 
@@ -148,6 +149,7 @@ fn spawn_lumbering_devil(
             let Ok((devil, parent)) = devils.get(*devil) else {
                 continue;
             };
+
             let Ok(transform) = parents.get(parent.get()) else {
                 error!("Cant get devil's parent object");
                 continue;
