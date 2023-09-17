@@ -8,7 +8,7 @@ use crate::assets::WithMesh;
 
 use super::{
     game_state::GameState,
-    player::Player,
+    player::{DiedOf, Player},
     schedule::{InGamePostUpdate, InGamePreUpdate, InGameUpdate},
     InGame,
 };
@@ -139,17 +139,20 @@ fn start_ritual(
 fn end_ritual(
     mut commands: Commands,
     rituals: Query<(&Ritual, &TimeSoFar), With<RitualProceeding>>,
-    players: Query<&GlobalTransform, With<Player>>,
+    players: Query<(Entity, &GlobalTransform), With<Player>>,
 ) {
     for (ritual, time) in &rituals {
         if time.0 >= ritual.end_time {
             let position = ritual.position.extend(0.);
             let radius = ritual.radius;
-            for player in &players {
-                if player.translation().distance(position) <= radius {
+            for (player, transform) in &players {
+                if transform.translation().distance(position) <= radius {
                     commands.insert_resource(NextState(Some(GameState::Complete)));
                     return;
                 }
+                commands
+                    .entity(player)
+                    .insert(DiedOf(super::souls::DamageType::TimeOut));
             }
             commands.insert_resource(NextState(Some(GameState::Failed)));
         }

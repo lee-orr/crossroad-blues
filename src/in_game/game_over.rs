@@ -14,7 +14,7 @@ use dexterous_developer::{
     dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
 };
 
-use super::game_state::GameState;
+use super::{game_state::GameState, player::DiedOf, souls::DamageType};
 pub struct GameOverPlugin;
 
 impl Plugin for GameOverPlugin {
@@ -41,14 +41,27 @@ struct Screen;
 #[derive(Component)]
 struct Button;
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>, players: Query<&DiedOf>) {
     let mut menu_button = None;
     let r = root((overlay, c_root), &asset_server, &mut commands, |p| {
         node(primary_box, p, |p| {
             node((span.nb(), primary_box_main.nb()), p, |p| {
-                text("Game", (), main_text, p);
-                text("Over", (), main_text, p);
+                text("Game Over", (), main_text, p);
             });
+            for player in &players {
+                node((span.nb(), primary_box_item.nb()), p, |p| {
+                    text(
+                        match player.0 {
+                            DamageType::Sunlight => "Sunlight Purifies, You are Impure",
+                            DamageType::Devil => "Devils Can Catch You",
+                            DamageType::TimeOut => "You didn't reach the summoning on time",
+                        },
+                        (),
+                        standard_text,
+                        p,
+                    );
+                });
+            }
             focus_text_button(
                 "Main Menu",
                 (c_button.nb(), primary_box_item.nb()),

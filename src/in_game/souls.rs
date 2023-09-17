@@ -36,6 +36,7 @@ pub struct Damage {
 pub enum DamageType {
     Sunlight,
     Devil,
+    TimeOut,
 }
 
 #[derive(Event, Clone, Copy, Debug)]

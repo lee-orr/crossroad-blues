@@ -8,13 +8,13 @@ use crate::{
 
 use super::{
     actions::{input_manager, PlayerAction},
-    checkpoints::Checkpoints,
+    checkpoints::{CheckpointCollected, Checkpoints},
     danger::Danger,
     game_state::{GameState, TemporaryIgnore},
     movement::{CanMove, Moving},
     schedule::{InGamePreUpdate, InGameUpdate},
     shadow::{CheckForShadow, InShadow},
-    souls::{Death, MaxSouls, Souls, SunSensitivity},
+    souls::{DamageType, Death, MaxSouls, Souls, SunSensitivity},
     teleport::{CanTeleport, StartTeleport, TargetInRange, Teleporting},
     InGame,
 };
@@ -66,6 +66,12 @@ pub struct PlayerTarget(pub Entity);
 #[derive(Debug, Component, Clone)]
 pub struct PlayerTargetReference(pub Entity, pub Vec2);
 
+#[derive(Component)]
+pub struct CheckpointsConsumedForTeleport(pub usize);
+
+#[derive(Component)]
+pub struct DiedOf(pub DamageType);
+
 pub fn construct_player(
     players: Query<(Entity, &GlobalTransform), With<ConstructPlayer>>,
     mut commands: Commands,
@@ -101,14 +107,20 @@ pub fn construct_player(
                 CanMove::default(),
                 Moving::default(),
                 input_manager(),
-                CheckForShadow,
-                Souls(50.),
-                MaxSouls(50.),
-                SunSensitivity(5.),
-                Checkpoints {
-                    checkpoints: Default::default(),
-                    max_checkpoints: 3,
-                },
+                (
+                    CheckForShadow,
+                    Souls(50.),
+                    MaxSouls(50.),
+                    SunSensitivity(5.),
+                ),
+                (
+                    Checkpoints {
+                        checkpoints: Default::default(),
+                        max_checkpoints: 3,
+                    },
+                    CheckpointsConsumedForTeleport(0),
+                    CheckpointCollected(0),
+                ),
                 WithMesh::Player,
             ));
     }
@@ -250,6 +262,7 @@ pub fn end_game(
                 revert.max_souls,
             ));
         } else {
+            commands.entity(player).insert(DiedOf(death.cause));
             commands.insert_resource(NextState(Some(GameState::Failed)));
         }
     }

@@ -91,17 +91,17 @@ impl Plugin for InGamePlugin {
         .add_systems(
             Update,
             run_in_game_update
-                .run_if(in_state(AppState::InGame).and_then(in_state(PauseState::None))),
+                .run_if(in_state(GameState::InGame).and_then(in_state(PauseState::None))),
         )
         .add_systems(
             PreUpdate,
             run_in_game_pre_update
-                .run_if(in_state(AppState::InGame).and_then(in_state(PauseState::None))),
+                .run_if(in_state(GameState::InGame).and_then(in_state(PauseState::None))),
         )
         .add_systems(
             PostUpdate,
             run_in_game_post_update
-                .run_if(in_state(AppState::InGame).and_then(in_state(PauseState::None))),
+                .run_if(in_state(GameState::InGame).and_then(in_state(PauseState::None))),
         )
         .setup_reloadable_elements::<reloadable>();
     }

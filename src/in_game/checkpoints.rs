@@ -39,6 +39,9 @@ pub struct Checkpoints {
     pub max_checkpoints: usize,
 }
 
+#[derive(Component, Clone, Debug)]
+pub struct CheckpointCollected(pub usize);
+
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Checkpoint;
 
@@ -61,12 +64,18 @@ fn draw_checkpoint(
 
 fn collect_checkpoint(
     checkpoints: Query<(Entity, &GlobalTransform), With<Checkpoint>>,
-    mut player: Query<(&GlobalTransform, &Souls, &MaxSouls, &mut Checkpoints)>,
+    mut player: Query<(
+        &GlobalTransform,
+        &Souls,
+        &MaxSouls,
+        &mut Checkpoints,
+        &mut CheckpointCollected,
+    )>,
     mut commands: Commands,
 ) {
     for (checkpoint, position) in checkpoints.iter() {
         let position = position.translation();
-        for (player_pos, souls, max_souls, mut checkpoints) in player.iter_mut() {
+        for (player_pos, souls, max_souls, mut checkpoints, mut collected) in player.iter_mut() {
             let player_pos = player_pos.translation();
             let distance = player_pos.distance(position);
             if distance < 20. {
@@ -79,6 +88,7 @@ fn collect_checkpoint(
                 if checkpoints.checkpoints.len() > checkpoints.max_checkpoints {
                     let _ = checkpoints.checkpoints.pop_front();
                 }
+                collected.0 += 1;
                 break;
             }
         }
