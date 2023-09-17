@@ -39,7 +39,9 @@ impl Plugin for PausePlugin {
 #[dexterous_developer_setup(pause)]
 fn reloadable(app: &mut ReloadableAppContents) {
     println!("Reloaded...");
-    app.reset_setup_in_state::<Screen, _, _>(PauseState::Paused, setup);
+    app.reset_setup_in_state::<Screen, _, _>(PauseState::Paused, setup)
+        .add_systems(OnEnter(PauseState::Paused), pause_audio)
+        .add_systems(OnExit(PauseState::Paused), resume_audio);
 }
 
 #[derive(Component)]
@@ -116,5 +118,19 @@ fn process_keyboard_input(
             PauseState::None => PauseState::Paused,
             PauseState::Paused => PauseState::None,
         })));
+    }
+}
+
+fn pause_audio(audio: Query<&AudioSink>) {
+    println!("Pausing...");
+    for audio in &audio {
+        println!("paused!");
+        audio.pause();
+    }
+}
+
+fn resume_audio(audio: Query<&AudioSink>) {
+    for audio in &audio {
+        audio.play();
     }
 }

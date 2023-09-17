@@ -76,7 +76,6 @@ impl Plugin for InGamePlugin {
                 .run_if(input_toggle_active(false, KeyCode::F1)),
         )
         .add_systems(OnExit(AppState::InGame), (exit, clear_audio))
-        .add_systems(Update, (enable_audio).run_if(in_state(AppState::InGame)))
         .add_systems(
             PreUpdate,
             run_in_game_scorers
@@ -132,14 +131,6 @@ fn exit(mut commands: Commands, _query: Query<Entity, With<InGame>>, _windows: Q
 fn clear_audio(audio: Query<&AudioSink>) {
     for audio in audio.iter() {
         audio.stop();
-    }
-}
-
-fn enable_audio(audio: Query<&AudioSink>) {
-    for audio in audio.iter() {
-        if audio.is_paused() {
-            audio.play();
-        }
     }
 }
 
