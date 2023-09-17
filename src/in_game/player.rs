@@ -383,6 +383,7 @@ fn consume_checkpoint(
             &mut Souls,
             &mut MaxSouls,
             &mut Checkpoints,
+            &mut CheckpointsConsumedForTeleport,
             &ActionState<PlayerAction>,
             &PlayerTargetReference,
         ),
@@ -392,7 +393,15 @@ fn consume_checkpoint(
     devil: Query<(Entity, &GlobalTransform, &Danger)>,
     mut commands: Commands,
 ) {
-    for (player_pos, mut souls, mut max_souls, mut checkpoints, action, target_ref) in &mut players
+    for (
+        player_pos,
+        mut souls,
+        mut max_souls,
+        mut checkpoints,
+        mut checkpoint_consumed,
+        action,
+        target_ref,
+    ) in &mut players
     {
         if !action.just_pressed(PlayerAction::Secondary) {
             continue;
@@ -411,13 +420,14 @@ fn consume_checkpoint(
         if let Some((devil, _, _)) = devil {
             if let Some(checkpoint) = checkpoints.checkpoints.pop_front() {
                 let end_position = checkpoint.position;
-
+                checkpoint_consumed.0 += 1;
                 commands.entity(devil).insert(StartTeleport(end_position));
             }
         } else if player_distance < 30. {
             if let Some(checkpoint) = checkpoints.checkpoints.pop_front() {
                 souls.0 = checkpoint.souls.0;
                 max_souls.0 = checkpoint.max_souls.0;
+                checkpoint_consumed.0 += 1;
             }
         }
     }

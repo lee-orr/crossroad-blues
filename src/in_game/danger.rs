@@ -21,29 +21,32 @@ use super::{
     game_state::TemporaryIgnore,
     movement::{CanMove, Moving},
     player::Player,
-    schedule::{InGameActions, InGamePreUpdate, InGameScorers, InGameUpdate},
+    schedule::{InGameActions, InGameScorers, InGameUpdate},
     shadow::CheckForShadow,
     souls::Death,
 };
 
 pub fn danger_plugin(app: &mut ReloadableAppContents) {
-    app.add_systems(InGamePreUpdate, spawn_lumbering_devil)
-        .add_systems(InGameScorers, (restless_scorer_system, chase_scorer_system))
-        .add_systems(
-            InGameActions,
-            (
-                meandering_action_system,
-                rest_action_system,
-                chasing_action_system,
-            ),
-        )
-        .add_systems(InGameUpdate, (restlessness_system, mark_teleported_danger))
-        .add_systems(
-            PostUpdate,
-            (draw_danger, despawn_danger, setup_danger_in_grid),
-        )
-        .add_systems(OnExit(AppState::InGame), clear_grid)
-        .reset_resource::<CollisionGrid>();
+    app.add_systems(
+        PreUpdate,
+        spawn_lumbering_devil.run_if(in_state(AppState::InGame)),
+    )
+    .add_systems(InGameScorers, (restless_scorer_system, chase_scorer_system))
+    .add_systems(
+        InGameActions,
+        (
+            meandering_action_system,
+            rest_action_system,
+            chasing_action_system,
+        ),
+    )
+    .add_systems(InGameUpdate, (restlessness_system, mark_teleported_danger))
+    .add_systems(
+        PostUpdate,
+        (draw_danger, despawn_danger, setup_danger_in_grid),
+    )
+    .add_systems(OnExit(AppState::InGame), clear_grid)
+    .reset_resource::<CollisionGrid>();
 }
 
 #[derive(Component)]
@@ -136,7 +139,6 @@ fn spawn_lumbering_devil(
     }
 
     if adjacent_cells.is_empty() {
-        error!("No adjacent cells!");
         return;
     }
     let now = time.elapsed_seconds();

@@ -38,7 +38,7 @@ impl Default for CurrentLevel {
     fn default() -> Self {
         Self {
             song: "music/crossroad-blues.flac".to_string(),
-            song_length: Duration::from_secs(15),
+            song_length: Duration::from_secs(60),
             bg_color: SCREEN_BACKGROUND_COLOR,
             ambient: DEFAULT_AMBIENT,
             curviness: 120.,

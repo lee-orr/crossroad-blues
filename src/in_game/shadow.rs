@@ -15,7 +15,8 @@ use super::schedule::InGamePreUpdate;
 
 pub fn shadow_plugin(app: &mut ReloadableAppContents) {
     app.reset_resource::<ShadowCollisionGrid>()
-        .add_systems(InGamePreUpdate, (check_for_shadow, spawn_shadow))
+        .add_systems(PreUpdate, spawn_shadow)
+        .add_systems(InGamePreUpdate, check_for_shadow)
         .add_systems(PostUpdate, draw_shadow)
         .add_systems(OnExit(AppState::InGame), clear_grid);
 }

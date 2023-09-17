@@ -6,7 +6,7 @@ pub const BORDER_COLOR: Color = Color::rgb(0., 0., 0.02);
 
 pub const SCREEN_BACKGROUND_COLOR: Color = Color::rgb(0.3, 0.39, 0.05);
 
-pub const PRIMARY_BACKGROUND_COLOR: Color = Color::rgb(0., 0.05, 0.13);
+pub const PRIMARY_BACKGROUND_COLOR: Color = Color::rgb(0.15, 0.19, 0.03);
 
 pub const PRIMARY_COLOR: Color = Color::rgb(0.7, 0.4, 0.08);
 pub const PRIMARY_COLOR_PRIORITIZED: Color = Color::rgb(0.45, 0.26, 0.06);

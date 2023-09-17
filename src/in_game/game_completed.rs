@@ -11,7 +11,9 @@ use crate::{
     },
 };
 
-use super::game_state::GameState;
+use super::{
+    checkpoints::CheckpointCollected, game_state::GameState, player::CheckpointsConsumedForTeleport,
+};
 use dexterous_developer::{
     dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
 };
@@ -42,14 +44,47 @@ struct Screen;
 #[derive(Component)]
 struct Button;
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    players: Query<(&CheckpointCollected, &CheckpointsConsumedForTeleport)>,
+) {
     let mut menu_button = None;
     let r = root((overlay, c_root), &asset_server, &mut commands, |p| {
         node(primary_box, p, |p| {
             node((span.nb(), primary_box_main.nb()), p, |p| {
-                text("Game", (), main_text, p);
-                text("Completed!", (), main_text, p);
+                text("You got the Deal!", (), main_text, p);
             });
+
+            for (collected, consumed) in &players {
+                let collected = collected.0;
+                let consumed = consumed.0;
+                let collected_score = 10 * collected;
+                let consumed_score = 5 * consumed;
+                let score = collected_score + consumed_score;
+
+                node((span.nb(), primary_box_item.nb()), p, |p| {
+                    text(
+                        format!("Collected Checkpoints: {collected} X 10 = {collected_score}"),
+                        (),
+                        standard_text,
+                        p,
+                    );
+                });
+                node((span.nb(), primary_box_item.nb()), p, |p| {
+                    text(
+                        format!("Consumed Checkpoints: {consumed} X 5 = {consumed_score}"),
+                        (),
+                        standard_text,
+                        p,
+                    );
+                });
+
+                node((span.nb(), primary_box_item.nb()), p, |p| {
+                    text(format!("Score: {score}!"), (), main_text, p);
+                });
+            }
+
             focus_text_button(
                 "Main Menu",
                 (c_button.nb(), primary_box_item.nb()),

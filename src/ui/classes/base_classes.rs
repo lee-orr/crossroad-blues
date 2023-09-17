@@ -102,7 +102,7 @@ pub fn button_text(assets: &AssetServer, t: &mut TextStyle) {
 }
 
 pub fn main_text(_: &AssetServer, t: &mut TextStyle) {
-    t.font_size = 150.;
+    t.font_size = 100.;
     t.color = PRIMARY_COLOR;
 }
 
