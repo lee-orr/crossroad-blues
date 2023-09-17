@@ -13,6 +13,7 @@ mod ritual;
 mod schedule;
 mod shadow;
 mod souls;
+mod stealthy_seraphim;
 mod teleport;
 
 use bevy::{input::common_conditions::input_toggle_active, prelude::*};

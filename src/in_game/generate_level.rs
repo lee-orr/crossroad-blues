@@ -53,6 +53,7 @@ fn spawn_level(
     mut rng: ResMut<GlobalRng>,
     level: Res<CurrentLevel>,
 ) {
+    info!("Rebuilding Level");
     let rng = rng.get_mut();
     commands.insert_resource(ClearColor(level.bg_color));
     commands.insert_resource(level.ambient.clone());
@@ -421,7 +422,7 @@ fn place_danger(
                     transform: Transform::from_translation(point.extend(0.)),
                     ..Default::default()
                 },
-                DangerType::HolyHulk,
+                DangerType::StealthySeraphim,
             ));
         }
     }

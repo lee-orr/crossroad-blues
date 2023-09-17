@@ -33,6 +33,7 @@ pub enum WithMesh {
     PentagramCircle,
     PentagramTriangle(f32),
     Person,
+    StealthySeraphim,
 }
 
 fn spawn_mesh(
@@ -89,6 +90,10 @@ fn spawn_mesh(
                 transform.translation.z += 1.3;
                 transform.rotate_z(*angle);
                 assets.pentagram_triangle.clone()
+            }
+            WithMesh::StealthySeraphim => {
+                transform.translation.z += 2.;
+                assets.stealthy_seraphim.clone()
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());

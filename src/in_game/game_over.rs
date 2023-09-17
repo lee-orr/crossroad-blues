@@ -14,7 +14,7 @@ use dexterous_developer::{
     dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
 };
 
-use super::{game_state::GameState, player::DiedOf, souls::DamageType};
+use super::{danger::DangerType, game_state::GameState, player::DiedOf, souls::DamageType};
 pub struct GameOverPlugin;
 
 impl Plugin for GameOverPlugin {
@@ -54,7 +54,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, players: Query<
                         match &player.0 {
                             DamageType::Sunlight => "Sunlight Purifies, You are Impure",
                             DamageType::Danger(name) => match name {
-                                super::danger::DangerType::HolyHulk => "Hammered by a Holy Hulk",
+                                DangerType::HolyHulk => "Hammered by a Holy Hulk",
+                                DangerType::StealthySeraphim => "Sliced by a Stealthy Seraphim",
                             },
                             DamageType::TimeOut => "You didn't reach the summoning on time",
                         },
