@@ -15,7 +15,7 @@ use crate::{
 };
 
 use super::{
-    checkpoints::Checkpoint, game_state::GameState, holy_hulk::HolyHulk, movement::CanMove,
+    checkpoints::Checkpoint, danger::DangerType, game_state::GameState, movement::CanMove,
     player::ConstructPlayer, ritual::Person, shadow::Shadow, InGame,
 };
 
@@ -421,7 +421,7 @@ fn place_danger(
                     transform: Transform::from_translation(point.extend(0.)),
                     ..Default::default()
                 },
-                HolyHulk,
+                DangerType::HolyHulk,
             ));
         }
     }

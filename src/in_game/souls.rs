@@ -2,7 +2,10 @@ use bevy::prelude::*;
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 
 use super::{
-    danger::Danger, game_state::TemporaryIgnore, player::Player, schedule::InGameUpdate,
+    danger::{Danger, DangerType},
+    game_state::TemporaryIgnore,
+    player::Player,
+    schedule::InGameUpdate,
     shadow::InShadow,
 };
 
@@ -25,21 +28,21 @@ pub struct MaxSouls(pub f32);
 #[derive(Component, Clone, Copy, Debug, Default)]
 pub struct SunSensitivity(pub f32);
 
-#[derive(Event, Clone, Debug)]
+#[derive(Event, Clone, Copy, Debug)]
 pub struct Damage {
     pub entity: Entity,
     pub amount: f32,
     pub damage_type: DamageType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum DamageType {
     Sunlight,
-    Danger(String),
+    Danger(DangerType),
     TimeOut,
 }
 
-#[derive(Event, Clone, Debug)]
+#[derive(Event, Clone, Copy, Debug)]
 pub struct Death {
     pub entity: Entity,
     pub cause: DamageType,
@@ -75,7 +78,7 @@ pub fn take_damage(
         if souls.0 <= 0. {
             death.send(Death {
                 entity: event.entity,
-                cause: event.damage_type.clone(),
+                cause: event.damage_type,
             });
         }
     }
@@ -84,15 +87,15 @@ pub fn take_damage(
 fn kill_player_on_contact(
     mut death: EventWriter<Death>,
     players: Query<(Entity, &GlobalTransform), (With<Player>, Without<TemporaryIgnore>)>,
-    dangers: Query<(&GlobalTransform, &Danger), Without<TemporaryIgnore>>,
+    dangers: Query<(&GlobalTransform, &Danger, &DangerType), Without<TemporaryIgnore>>,
 ) {
     for (player, pos) in &players {
         let pos = pos.translation();
-        for (devil, radius) in &dangers {
-            if pos.distance(devil.translation()) < radius.0 {
+        for (transform, radius, danger_type) in &dangers {
+            if pos.distance(transform.translation()) < radius.0 {
                 death.send(Death {
                     entity: player,
-                    cause: DamageType::Danger(radius.1.clone()),
+                    cause: DamageType::Danger(*danger_type),
                 });
             }
         }

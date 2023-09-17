@@ -62,7 +62,7 @@ pub fn spawn_holy_hulk(
             danger.remove::<DangerAwaits>().insert((
                 Name::new("Holy Hulk"),
                 Transform::from_translation(*position - transform.translation()),
-                Danger(20., "Holy Hulk".to_string()),
+                Danger(20.),
                 CanMove { move_speed: 50. },
                 CheckForShadow,
                 SpawnTime(now),

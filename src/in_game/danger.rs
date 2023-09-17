@@ -51,7 +51,12 @@ pub fn danger_plugin(app: &mut ReloadableAppContents) {
 }
 
 #[derive(Component)]
-pub struct Danger(pub f32, pub String);
+pub struct Danger(pub f32);
+
+#[derive(Component, Clone, Copy, Debug)]
+pub enum DangerType {
+    HolyHulk,
+}
 
 #[derive(Component)]
 pub struct DangerAwaits;
@@ -88,16 +93,20 @@ impl std::hash::Hash for DangerInGrid {
 }
 
 fn setup_danger_in_grid(
-    dangers: Query<(Entity, &Transform), (With<HolyHulk>, Without<DangerAwaits>, Without<Danger>)>,
+    dangers: Query<(Entity, &Transform, &DangerType), (Without<DangerAwaits>, Without<Danger>)>,
     mut grid: ResMut<CollisionGrid>,
     mut commands: Commands,
 ) {
-    for (danger, transform) in &dangers {
+    for (danger, transform, danger_type) in &dangers {
         let pos = transform.translation.xy() / COLLISION_CELL_SIZE;
         let cell = (pos.x.floor() as i32, pos.y.floor() as i32);
         let cell_container = grid.map.entry(cell).or_default();
         cell_container.insert(DangerInGrid(danger, transform.translation));
-        commands.entity(danger).insert(DangerAwaits);
+        let mut entity = commands.entity(danger);
+        entity.insert(DangerAwaits);
+        match danger_type {
+            DangerType::HolyHulk => entity.insert(HolyHulk),
+        };
     }
 }
 
