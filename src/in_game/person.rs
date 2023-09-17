@@ -70,8 +70,11 @@ fn move_person(mut people: Query<(&mut Transform, &Person, &mut TimeSoFar)>, tim
         }
 
         let t = (t - current_segment.1) / (next_segment.1 - current_segment.1);
-        let point = (next_segment.0 - current_segment.0) * t + current_segment.0;
+        let direction = next_segment.0 - current_segment.0;
+        let point = direction * t + current_segment.0;
 
         transform.translation = point.extend(0.);
+        let angle = direction.y.atan2(direction.x);
+        transform.rotation = Quat::from_rotation_z(angle);
     }
 }
