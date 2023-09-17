@@ -9,7 +9,7 @@ use crate::{
     app_state::DrawDebugGizmos,
     ui::classes::{
         checkpoint_marker, checkpoint_marker_background, checkpoint_marker_content,
-        checkpoint_marker_inner_background, checkpoint_marker_root,
+        checkpoint_marker_empty, checkpoint_marker_inner_background, checkpoint_marker_root,
     },
 };
 
@@ -88,6 +88,9 @@ fn collect_checkpoint(
 #[derive(Component, Clone, Copy)]
 struct CheckpointMarker(Entity, usize);
 
+#[derive(Component, Clone, Copy)]
+struct CheckpiontHeld(Entity, usize);
+
 fn setup_checkpoint_ui(
     player: Query<(Entity, &Checkpoints), With<Player>>,
     markers: Query<&CheckpointMarker>,
@@ -106,19 +109,18 @@ fn setup_checkpoint_ui(
             for i in 0..checkpoints.max_checkpoints {
                 node(checkpoint_marker, p, |p| {
                     image(checkpoint_marker_background, p);
-                    checkpoint_marekers.push((
-                        i,
-                        node(checkpoint_marker_content, p, |p| {
-                            image(checkpoint_marker_inner_background, p);
-                        }),
-                        player,
-                    ))
+                    let checkpoint_held = image(checkpoint_marker_empty, p);
+                    let checkpoint_percentage = node(checkpoint_marker_content, p, |p| {
+                        image(checkpoint_marker_inner_background, p);
+                    });
+                    checkpoint_marekers.push((i, checkpoint_percentage, checkpoint_held, player))
                 });
             }
         }
     });
 
-    for (i, marker, player) in checkpoint_marekers {
+    for (i, marker, held, player) in checkpoint_marekers {
+        commands.entity(held).insert(CheckpiontHeld(player, i));
         commands.entity(marker).insert(CheckpointMarker(player, i));
     }
 
@@ -126,7 +128,8 @@ fn setup_checkpoint_ui(
 }
 
 fn draw_checkpoint_ui(
-    mut markers: Query<(&CheckpointMarker, &mut Style)>,
+    mut markers: Query<(&CheckpointMarker, &mut Style), Without<CheckpiontHeld>>,
+    mut holders: Query<(&CheckpiontHeld, &mut Style), Without<CheckpointMarker>>,
     players: Query<&Checkpoints>,
 ) {
     for (CheckpointMarker(player, marker_index), mut style) in markers.iter_mut() {
@@ -137,6 +140,17 @@ fn draw_checkpoint_ui(
         if let Some(checkpoint) = player.checkpoints.get(*marker_index) {
             let percent = checkpoint.souls.0 * 100. / checkpoint.max_souls.0;
             style.height = Val::Percent(percent);
+            style.display = Display::Flex;
+        } else {
+            style.display = Display::None;
+        }
+    }
+    for (CheckpiontHeld(player, marker_index), mut style) in holders.iter_mut() {
+        let Ok(player) = players.get(*player) else {
+            continue;
+        };
+
+        if player.checkpoints.get(*marker_index).is_some() {
             style.display = Display::Flex;
         } else {
             style.display = Display::None;

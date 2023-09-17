@@ -178,6 +178,18 @@ pub fn checkpoint_marker_background(assets: &AssetServer, b: &mut ImageBundle) {
     b.style.bottom = Val::Px(0.);
     b.style.right = Val::Px(0.);
     b.image = UiImage {
+        texture: assets.load("textures/checkpoint_slot.png"),
+        ..default()
+    };
+}
+
+pub fn checkpoint_marker_empty(assets: &AssetServer, b: &mut ImageBundle) {
+    b.style.position_type = PositionType::Absolute;
+    b.style.top = Val::Px(0.);
+    b.style.left = Val::Px(0.);
+    b.style.bottom = Val::Px(0.);
+    b.style.right = Val::Px(0.);
+    b.image = UiImage {
         texture: assets.load("textures/checkpoint-empty.png"),
         ..default()
     };
@@ -190,7 +202,6 @@ pub fn checkpoint_marker_inner_background(assets: &AssetServer, b: &mut ImageBun
     b.style.right = Val::Px(0.);
     b.style.width = Val::Px(50.);
     b.style.height = Val::Px(50.);
-    b.background_color.0 = Color::rgba(0.9, 0.9, 0.9, 0.4);
     b.image = UiImage {
         texture: assets.load("textures/checkpoint-full.png"),
         ..default()
