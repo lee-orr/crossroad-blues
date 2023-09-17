@@ -15,8 +15,8 @@ use crate::{
 };
 
 use super::{
-    checkpoints::Checkpoint, danger::LumberingDevil, movement::CanMove, player::ConstructPlayer,
-    shadow::Shadow, InGame,
+    checkpoints::Checkpoint, danger::LumberingDevil, movement::CanMove, person::Person,
+    player::ConstructPlayer, shadow::Shadow, InGame,
 };
 
 pub fn level_generate_plugin(app: &mut ReloadableAppContents) {
@@ -101,6 +101,19 @@ fn spawn_level(
             p.spawn((
                 SpatialBundle {
                     transform: Transform::from_translation(
+                        level_shapes.target_start_point.extend(0.),
+                    ),
+                    ..Default::default()
+                },
+                Person(
+                    level.song_length.as_secs_f32(),
+                    level_shapes.target_path.clone(),
+                ),
+            ));
+
+            p.spawn((
+                SpatialBundle {
+                    transform: Transform::from_translation(
                         level_shapes.player_start_point.extend(0.),
                     ),
                     ..Default::default()
@@ -134,6 +147,8 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
             )
         })
         .collect::<Arc<[_]>>();
+
+    info!("Setting up path {target_path:?}");
 
     let crossroads = target_path.last().map(|(v, _)| *v).unwrap_or(crossroads);
 
@@ -201,9 +216,17 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
     LevelShape {
         crossroads,
         roads,
+        target_start_point: target_path
+            .first()
+            .cloned()
+            .map(|v| v.0)
+            .unwrap_or_default(),
         target_path,
         section: sections,
-        player_start_point: start_pos,
+        player_start_point: start_pos
+            + 230. * Vec2::Y
+            + (100. * rng.f32_normalized())
+            + Vec2::X * 200. * rng.f32(),
     }
 }
 
@@ -490,6 +513,7 @@ pub struct LevelShape {
     pub target_path: Arc<[(Vec2, f32)]>,
     pub section: Arc<[LevelSections]>,
     pub player_start_point: Vec2,
+    pub target_start_point: Vec2,
 }
 
 #[derive(Debug, Clone)]

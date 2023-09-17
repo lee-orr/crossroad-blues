@@ -33,6 +33,9 @@ pub struct Shadow {
 }
 
 #[derive(Component)]
+struct InCollisionGrid;
+
+#[derive(Component)]
 #[component(storage = "SparseSet")]
 pub struct InShadow;
 
@@ -89,7 +92,7 @@ fn check_for_shadow(
 }
 
 fn spawn_shadow(
-    shadows: Query<(Entity, &GlobalTransform, &Shadow), Without<Children>>,
+    shadows: Query<(Entity, &GlobalTransform, &Shadow), Without<InCollisionGrid>>,
     mut commands: Commands,
     mut collision_grid: ResMut<ShadowCollisionGrid>,
 ) {
@@ -112,7 +115,7 @@ fn spawn_shadow(
         }
         commands
             .entity(entity)
-            .insert(WithMesh::Shadow(shadow.radius));
+            .insert((WithMesh::Shadow(shadow.radius), InCollisionGrid));
     }
 }
 

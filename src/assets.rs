@@ -31,6 +31,7 @@ pub enum WithMesh {
     Shadow(f32),
     RoadTile,
     Pentagram,
+    Person,
 }
 
 fn spawn_mesh(
@@ -76,8 +77,12 @@ fn spawn_mesh(
                 rng.sample(&assets.roads).unwrap().clone()
             }
             WithMesh::Pentagram => {
-                transform.translation.z += 1.1;
+                transform.translation.z += 1.3;
                 assets.pentagram.clone()
+            }
+            WithMesh::Person => {
+                transform.translation.z += 1.8;
+                assets.person.clone()
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());
