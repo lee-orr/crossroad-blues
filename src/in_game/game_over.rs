@@ -51,10 +51,12 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, players: Query<
             for player in &players {
                 node((span.nb(), primary_box_item.nb()), p, |p| {
                     text(
-                        match player.0 {
-                            DamageType::Sunlight => "Sunlight Purifies, You are Impure",
-                            DamageType::Devil => "Devils Can Catch You",
-                            DamageType::TimeOut => "You didn't reach the summoning on time",
+                        match &player.0 {
+                            DamageType::Sunlight => "Sunlight Purifies, You are Impure".to_string(),
+                            DamageType::Danger(name) => format!("Killed by a {name}"),
+                            DamageType::TimeOut => {
+                                "You didn't reach the summoning on time".to_string()
+                            }
                         },
                         (),
                         standard_text,

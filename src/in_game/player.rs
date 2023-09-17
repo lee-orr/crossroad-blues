@@ -262,7 +262,7 @@ pub fn end_game(
                 revert.max_souls,
             ));
         } else {
-            commands.entity(player).insert(DiedOf(death.cause));
+            commands.entity(player).insert(DiedOf(death.cause.clone()));
             commands.insert_resource(NextState(Some(GameState::Failed)));
         }
     }

@@ -26,7 +26,7 @@ impl Plugin for MainGameAssetPlugin {
 #[derive(Component, Clone, Copy)]
 pub enum WithMesh {
     Player,
-    LumberingDevil,
+    HolyHulk,
     Checkpoint,
     Shadow(f32),
     RoadTile,
@@ -61,9 +61,9 @@ fn spawn_mesh(
                 transform.translation.z += 3.;
                 assets.player.clone()
             }
-            WithMesh::LumberingDevil => {
+            WithMesh::HolyHulk => {
                 transform.translation.z += 2.;
-                assets.lumbering_devil.clone()
+                assets.holy_hulk.clone()
             }
             WithMesh::Checkpoint => {
                 transform.translation.z += 4.;
@@ -83,7 +83,7 @@ fn spawn_mesh(
             }
             WithMesh::Person => {
                 transform.translation.z += 1.8;
-                assets.person.clone()
+                rng.sample(&assets.people).unwrap().clone()
             }
             WithMesh::PentagramTriangle(angle) => {
                 transform.translation.z += 1.3;
@@ -155,7 +155,9 @@ pub struct MainGameAssets {
     #[asset(
         paths(
             "models/meshes.gltf#Mesh5/Primitive0",
-            "models/meshes.gltf#Mesh6/Primitive0"
+            "models/meshes.gltf#Mesh6/Primitive0",
+            "models/meshes.gltf#Mesh17/Primitive0",
+            "models/meshes.gltf#Mesh18/Primitive0",
         ),
         collection(typed)
     )]
@@ -164,8 +166,15 @@ pub struct MainGameAssets {
     pub lumbering_devil: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh8/Primitive0")]
     pub checkpoint: Handle<Mesh>,
-    #[asset(path = "models/meshes.gltf#Mesh9/Primitive0")]
-    pub person: Handle<Mesh>,
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh9/Primitive0",
+            "models/meshes.gltf#Mesh25/Primitive0",
+            "models/meshes.gltf#Mesh26/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub people: Vec<Handle<Mesh>>,
     #[asset(path = "models/meshes.gltf#Mesh10/Primitive0")]
     pub pentagram_circle: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh16/Primitive0")]
@@ -187,4 +196,16 @@ pub struct MainGameAssets {
         collection(typed)
     )]
     pub tree_trunks: Vec<Handle<Mesh>>,
+    #[asset(path = "models/meshes.gltf#Mesh19/Primitive0")]
+    pub holy_hulk: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh20/Primitive0")]
+    pub stealthy_seraphim: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh21/Primitive0")]
+    pub angelic_archer: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh22/Primitive0")]
+    pub angelic_archer_arrow: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh23/Primitive0")]
+    pub holy_smokes: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh24/Primitive0")]
+    pub guardian_angel: Handle<Mesh>,
 }

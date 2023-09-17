@@ -25,21 +25,21 @@ pub struct MaxSouls(pub f32);
 #[derive(Component, Clone, Copy, Debug, Default)]
 pub struct SunSensitivity(pub f32);
 
-#[derive(Event, Clone, Copy, Debug)]
+#[derive(Event, Clone, Debug)]
 pub struct Damage {
     pub entity: Entity,
     pub amount: f32,
     pub damage_type: DamageType,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum DamageType {
     Sunlight,
-    Devil,
+    Danger(String),
     TimeOut,
 }
 
-#[derive(Event, Clone, Copy, Debug)]
+#[derive(Event, Clone, Debug)]
 pub struct Death {
     pub entity: Entity,
     pub cause: DamageType,
@@ -75,7 +75,7 @@ pub fn take_damage(
         if souls.0 <= 0. {
             death.send(Death {
                 entity: event.entity,
-                cause: event.damage_type,
+                cause: event.damage_type.clone(),
             });
         }
     }
@@ -84,15 +84,15 @@ pub fn take_damage(
 fn kill_player_on_contact(
     mut death: EventWriter<Death>,
     players: Query<(Entity, &GlobalTransform), (With<Player>, Without<TemporaryIgnore>)>,
-    devils: Query<(&GlobalTransform, &Danger), Without<TemporaryIgnore>>,
+    dangers: Query<(&GlobalTransform, &Danger), Without<TemporaryIgnore>>,
 ) {
     for (player, pos) in &players {
         let pos = pos.translation();
-        for (devil, radius) in &devils {
+        for (devil, radius) in &dangers {
             if pos.distance(devil.translation()) < radius.0 {
                 death.send(Death {
                     entity: player,
-                    cause: DamageType::Devil,
+                    cause: DamageType::Danger(radius.1.clone()),
                 });
             }
         }

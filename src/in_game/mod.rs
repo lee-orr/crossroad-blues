@@ -5,6 +5,7 @@ mod game_completed;
 mod game_over;
 mod game_state;
 mod generate_level;
+mod holy_hulk;
 mod movement;
 mod pause_screen;
 mod player;
