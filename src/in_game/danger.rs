@@ -6,7 +6,7 @@ use bevy::{
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use big_brain::{
-    prelude::{ActionBuilder, ActionState, FirstToScore, ScorerBuilder},
+    prelude::{ActionBuilder, ActionState, ScorerBuilder},
     scorers::Score,
     thinker::{ActionSpan, Actor, HasThinker, Thinker},
 };
