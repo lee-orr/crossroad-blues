@@ -30,7 +30,8 @@ pub enum WithMesh {
     Checkpoint,
     Shadow(f32),
     RoadTile,
-    Pentagram,
+    PentagramCircle,
+    PentagramTriangle(f32),
     Person,
 }
 
@@ -76,13 +77,18 @@ fn spawn_mesh(
                 transform.translation.z += 1.;
                 rng.sample(&assets.roads).unwrap().clone()
             }
-            WithMesh::Pentagram => {
+            WithMesh::PentagramCircle => {
                 transform.translation.z += 1.3;
-                assets.pentagram.clone()
+                assets.pentagram_circle.clone()
             }
             WithMesh::Person => {
                 transform.translation.z += 1.8;
                 assets.person.clone()
+            }
+            WithMesh::PentagramTriangle(angle) => {
+                transform.translation.z += 1.3;
+                transform.rotate_z(*angle);
+                assets.pentagram_triangle.clone()
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());
@@ -161,7 +167,9 @@ pub struct MainGameAssets {
     #[asset(path = "models/meshes.gltf#Mesh9/Primitive0")]
     pub person: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh10/Primitive0")]
-    pub pentagram: Handle<Mesh>,
+    pub pentagram_circle: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh16/Primitive0")]
+    pub pentagram_triangle: Handle<Mesh>,
     #[asset(
         paths(
             "models/meshes.gltf#Mesh11/Primitive0",

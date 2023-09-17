@@ -15,8 +15,8 @@ use crate::{
 };
 
 use super::{
-    checkpoints::Checkpoint, danger::LumberingDevil, movement::CanMove, person::Person,
-    player::ConstructPlayer, shadow::Shadow, InGame,
+    checkpoints::Checkpoint, danger::LumberingDevil, game_state::GameState, movement::CanMove,
+    player::ConstructPlayer, ritual::Person, shadow::Shadow, InGame,
 };
 
 pub fn level_generate_plugin(app: &mut ReloadableAppContents) {
@@ -38,11 +38,11 @@ impl Default for CurrentLevel {
     fn default() -> Self {
         Self {
             song: "music/crossroad-blues.flac".to_string(),
-            song_length: Duration::from_secs(153),
+            song_length: Duration::from_secs(15),
             bg_color: SCREEN_BACKGROUND_COLOR,
             ambient: DEFAULT_AMBIENT,
             curviness: 120.,
-            num_segments: 7,
+            num_segments: 3,
         }
     }
 }
@@ -92,14 +92,6 @@ fn spawn_level(
 
             p.spawn((
                 SpatialBundle {
-                    transform: Transform::from_translation(level_shapes.crossroads.extend(0.)),
-                    ..Default::default()
-                },
-                WithMesh::Pentagram,
-            ));
-
-            p.spawn((
-                SpatialBundle {
                     transform: Transform::from_translation(
                         level_shapes.target_start_point.extend(0.),
                     ),
@@ -121,6 +113,8 @@ fn spawn_level(
                 ConstructPlayer,
             ));
         });
+
+    commands.insert_resource(NextState(Some(GameState::InGame)));
 }
 
 fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -> LevelShape {

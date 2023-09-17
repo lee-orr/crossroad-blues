@@ -7,8 +7,8 @@ mod game_state;
 mod generate_level;
 mod movement;
 mod pause_screen;
-mod person;
 mod player;
+mod ritual;
 mod schedule;
 mod shadow;
 mod souls;
@@ -28,7 +28,7 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     in_game::{
-        checkpoints::checkpoint_plugin, danger::danger_plugin, person::person_plugin,
+        checkpoints::checkpoint_plugin, danger::danger_plugin, ritual::ritual_plugin,
         souls::souls_plugin,
     },
 };
@@ -117,7 +117,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
     checkpoint_plugin(app);
     danger_plugin(app);
     level_generate_plugin(app);
-    person_plugin(app);
+    ritual_plugin(app);
 }
 
 #[derive(Component)]
