@@ -182,6 +182,12 @@ pub struct MainGameAssets {
     pub grasses: Vec<Handle<Mesh>>,
     #[asset(path = "models/meshes.gltf#Mesh4/Primitive0")]
     pub player: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh34/Primitive0")]
+    pub player_face: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh39/Primitive0")]
+    pub player_dead: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh40/Primitive0")]
+    pub player_celebrate: Handle<Mesh>,
     #[asset(
         paths(
             "models/meshes.gltf#Mesh5/Primitive0",
@@ -194,6 +200,8 @@ pub struct MainGameAssets {
     pub roads: Vec<Handle<Mesh>>,
     #[asset(path = "models/meshes.gltf#Mesh7/Primitive0")]
     pub lumbering_devil: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh28/Primitive0")]
+    pub devil_face: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh8/Primitive0")]
     pub checkpoint: Handle<Mesh>,
     #[asset(
@@ -228,18 +236,36 @@ pub struct MainGameAssets {
     pub tree_trunks: Vec<Handle<Mesh>>,
     #[asset(path = "models/meshes.gltf#Mesh19/Primitive0")]
     pub holy_hulk: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh29/Primitive0")]
+    pub holy_hulk_face: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh20/Primitive0")]
     pub stealthy_seraphim: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh30/Primitive0")]
+    pub stealthy_seraphim_face: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh21/Primitive0")]
     pub angelic_archer: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh22/Primitive0")]
     pub angelic_archer_arrow: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh31/Primitive0")]
+    pub angelic_archer_face: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh23/Primitive0")]
     pub divine_detonator: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh33/Primitive0")]
+    pub divine_detonator_face: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh27/Primitive0")]
     pub divine_detonator_explosion: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh24/Primitive0")]
     pub guardian_angel: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh32/Primitive0")]
+    pub guardian_angel_face: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh35/Primitive0")]
+    pub devil_pretending: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh36/Primitive0")]
+    pub devil_pretending_face: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh37/Primitive0")]
+    pub sunlight: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh38/Primitive0")]
+    pub pentagram: Handle<Mesh>,
     #[asset(path = "levels.lvl.yaml")]
     pub levels: Handle<Levels>,
 }
