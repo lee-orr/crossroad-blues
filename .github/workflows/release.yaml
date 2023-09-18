@@ -13,7 +13,7 @@ env:
   itch_target: lee-orr/crossroad-blues
 
 concurrency:
-  group: release
+  group: releasez
   cancel-in-progress: true
 
 jobs:
