@@ -28,6 +28,9 @@ pub struct MaxSouls(pub f32);
 #[derive(Component, Clone, Copy, Debug, Default)]
 pub struct SunSensitivity(pub f32);
 
+#[derive(Component, Debug)]
+pub struct LethalTouch;
+
 #[derive(Event, Clone, Copy, Debug)]
 pub struct Damage {
     pub entity: Entity,
@@ -87,7 +90,10 @@ pub fn take_damage(
 fn kill_player_on_contact(
     mut death: EventWriter<Death>,
     players: Query<(Entity, &GlobalTransform), (With<Player>, Without<TemporaryIgnore>)>,
-    dangers: Query<(&GlobalTransform, &Danger, &DangerType), Without<TemporaryIgnore>>,
+    dangers: Query<
+        (&GlobalTransform, &Danger, &DangerType),
+        (Without<TemporaryIgnore>, With<LethalTouch>),
+    >,
 ) {
     for (player, pos) in &players {
         let pos = pos.translation();

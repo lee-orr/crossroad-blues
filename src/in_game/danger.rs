@@ -17,6 +17,7 @@ use crate::app_state::{AppState, DrawDebugGizmos};
 
 use super::{
     game_state::TemporaryIgnore,
+    guardian_angel::guardian_angel_plugin,
     holy_hulk::{spawn_holy_hulk, HolyHulk},
     movement::Moving,
     player::Player,
@@ -60,6 +61,7 @@ pub fn danger_plugin(app: &mut ReloadableAppContents) {
     .add_systems(OnExit(AppState::InGame), clear_grid)
     .reset_resource::<CollisionGrid>();
     stealthy_seraphim_plugin(app);
+    guardian_angel_plugin(app);
 }
 
 #[derive(Component)]
@@ -71,6 +73,7 @@ pub struct DangerSpawner(pub Entity);
 pub enum DangerType {
     HolyHulk,
     StealthySeraphim,
+    GuardianAngel,
 }
 
 #[derive(Component)]
@@ -217,8 +220,17 @@ pub fn spawn_danger(
                 InGame,
             ));
             match danger_type {
-                DangerType::HolyHulk => child.insert(HolyHulk),
-                DangerType::StealthySeraphim => child.insert(StealthySeraphim),
+                DangerType::HolyHulk => {
+                    child.insert(HolyHulk);
+                }
+                DangerType::StealthySeraphim => {
+                    child.insert(StealthySeraphim);
+                }
+                DangerType::GuardianAngel => {
+                    error!("Shouldn't get here");
+                    child.despawn();
+                    commands.entity(danger).despawn();
+                }
             };
         }
     }

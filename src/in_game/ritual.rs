@@ -37,7 +37,7 @@ struct Ritual {
 }
 
 #[derive(Component)]
-struct RitualProceeding;
+pub struct RitualProceeding;
 
 fn spawn_person(
     mut people: Query<(Entity, &mut Person), Without<TimeSoFar>>,

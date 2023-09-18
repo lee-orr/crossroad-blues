@@ -15,6 +15,7 @@ use super::{
     movement::{CanMove, Moving},
     schedule::InGameUpdate,
     shadow::CheckForShadow,
+    souls::LethalTouch,
 };
 
 #[derive(Component)]
@@ -36,7 +37,7 @@ fn spawn_stealthy_seraphim(
     for danger in &dangers {
         commands.entity(danger).insert((
             Name::new("Stealthy Seraphim"),
-            Danger(20.),
+            Danger(10.),
             CanMove { move_speed: 200. },
             CheckForShadow,
             SpawnTime(now),
@@ -75,6 +76,7 @@ fn spawn_stealthy_seraphim(
                 )
                 .otherwise(Resting),
             WithMesh::StealthySeraphim,
+            LethalTouch,
         ));
     }
 }

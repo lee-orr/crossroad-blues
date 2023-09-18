@@ -7,6 +7,7 @@ use super::{
     danger::{Chase, Chasing, Danger, Meandering, Resting, Restless, Restlessness, SpawnTime},
     movement::CanMove,
     shadow::CheckForShadow,
+    souls::LethalTouch,
 };
 
 #[derive(Component)]
@@ -21,7 +22,7 @@ pub fn spawn_holy_hulk(
     for danger in &dangers {
         commands.entity(danger).insert((
             Name::new("Holy Hulk"),
-            Danger(10.),
+            Danger(20.),
             CanMove { move_speed: 50. },
             CheckForShadow,
             SpawnTime(now),
@@ -52,6 +53,7 @@ pub fn spawn_holy_hulk(
                 )
                 .otherwise(Resting),
             WithMesh::HolyHulk,
+            LethalTouch,
         ));
     }
 }
