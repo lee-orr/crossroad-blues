@@ -23,7 +23,12 @@ pub fn ritual_plugin(app: &mut ReloadableAppContents) {
 }
 
 #[derive(Component)]
-pub struct Person(pub f32, pub Arc<[(Vec2, f32)]>);
+pub struct Person(
+    pub f32,
+    pub Arc<[(Vec2, f32)]>,
+    pub Option<Handle<Mesh>>,
+    pub Option<Handle<Mesh>>,
+);
 
 #[derive(Component)]
 struct TimeSoFar(f32, usize);
@@ -61,7 +66,11 @@ fn spawn_person(
 
         commands.entity(person).insert((
             TimeSoFar(0., 0),
-            WithMesh::Person,
+            if let Some(handle) = &p.2 {
+                WithMesh::Handle(handle.clone())
+            } else {
+                WithMesh::Person
+            },
             Ritual {
                 position,
                 radius,

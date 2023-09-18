@@ -2,11 +2,15 @@
   song: "music/crossroad-blues.flac"
   song_length: 15
   curviness: 150
-  bg_color: !Rgba { red: 0.3, green: 0.39, blue: 0.05, alpha: 1 }
+  locale: Hell
+  person: "models/meshes.gltf#Mesh35/Primitive0"
+  guardian: "models/meshes.gltf#Mesh41/Primitive0"
   segments:
     - tree_density: 0.2
       checkpoint_density: 0.1
-      danger_densities: []
+      danger_densities:
+        - - LumberingDevil
+          - 0.3
   initial_text:
     - '"So... you think you''re ready to get some contracts...'
     - "Let's see what you've got first"
@@ -21,7 +25,6 @@
   song: "music/crossroad-blues-menu.flac"
   song_length: 15
   curviness: 150
-  bg_color: !Rgba { red: 0.9, green: 0.39, blue: 0.05, alpha: 1 }
   segments:
     - tree_density: 0.2
       checkpoint_density: 0.1

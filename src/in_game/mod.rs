@@ -10,6 +10,7 @@ mod generate_level;
 mod guardian_angel;
 mod holy_hulk;
 mod in_game_text;
+mod lumbering_devil;
 mod movement;
 mod pause_screen;
 mod player;

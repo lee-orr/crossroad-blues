@@ -71,6 +71,7 @@ fn setup(
                                 DangerType::GuardianAngel => "Gutted by Guardian Angel",
                                 DangerType::AngelicArcher => "Abolished by Angelic Archers",
                                 DangerType::DivineDetonator => "Demolished by Divine Detonator",
+                                DangerType::LumberingDevil => "Dunked by a Devil",
                             },
                             DamageType::TimeOut => "You didn't reach the summoning on time",
                         },
@@ -122,6 +123,7 @@ fn setup(
             DangerType::GuardianAngel => WithMesh::GuardianAngelFace,
             DangerType::AngelicArcher => WithMesh::AngelicArchersFace,
             DangerType::DivineDetonator => WithMesh::DivineDetonatorFace,
+            DangerType::LumberingDevil => WithMesh::DevilFace,
         },
         DamageType::TimeOut => WithMesh::PentagramFail,
     };

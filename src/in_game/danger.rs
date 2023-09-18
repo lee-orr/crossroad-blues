@@ -17,7 +17,10 @@ use serde::Deserialize;
 
 use crate::{
     app_state::{AppState, DrawDebugGizmos},
-    in_game::{angelic_archers::AngelicArcher, divine_detonator::DivineDetonator},
+    in_game::{
+        angelic_archers::AngelicArcher, divine_detonator::DivineDetonator,
+        lumbering_devil::LumberingDevil,
+    },
 };
 
 use super::{
@@ -26,6 +29,7 @@ use super::{
     game_state::TemporaryIgnore,
     guardian_angel::guardian_angel_plugin,
     holy_hulk::{spawn_holy_hulk, HolyHulk},
+    lumbering_devil::spawn_lumbering_devil,
     movement::Moving,
     player::Player,
     schedule::{InGameActions, InGamePostUpdate, InGameScorers, InGameUpdate},
@@ -57,7 +61,7 @@ pub fn danger_plugin(app: &mut ReloadableAppContents) {
         (
             restlessness_system,
             mark_teleported_danger,
-            (spawn_holy_hulk,),
+            (spawn_holy_hulk, spawn_lumbering_devil),
         ),
     )
     .add_systems(InGamePostUpdate, spawn_danger)
@@ -85,6 +89,7 @@ pub enum DangerType {
     GuardianAngel,
     AngelicArcher,
     DivineDetonator,
+    LumberingDevil,
 }
 
 #[derive(Component)]
@@ -247,6 +252,9 @@ pub fn spawn_danger(
                 }
                 DangerType::DivineDetonator => {
                     child.insert(DivineDetonator);
+                }
+                DangerType::LumberingDevil => {
+                    child.insert(LumberingDevil);
                 }
             };
         }

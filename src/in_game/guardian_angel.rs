@@ -23,7 +23,7 @@ pub fn guardian_angel_plugin(app: &mut ReloadableAppContents) {
 pub struct GuardianAngel;
 
 fn spawn_guardian_angel(
-    person: Query<(Entity, &Transform), (Without<RitualProceeding>, With<Person>)>,
+    person: Query<(Entity, &Transform, &Person), Without<RitualProceeding>>,
     dangers: Query<Entity, With<GuardianAngel>>,
     player: Query<&Transform, With<Player>>,
     mut commands: Commands,
@@ -32,7 +32,7 @@ fn spawn_guardian_angel(
     if !dangers.is_empty() {
         return;
     }
-    let Ok((person, transform)) = person.get_single() else {
+    let Ok((person, transform, person_info)) = person.get_single() else {
         return;
     };
 
@@ -78,7 +78,11 @@ fn spawn_guardian_angel(
                     },
                 )
                 .otherwise(Resting),
-            WithMesh::GuardianAngel,
+            if let Some(handle) = &person_info.3 {
+                WithMesh::Handle(handle.clone())
+            } else {
+                WithMesh::GuardianAngel
+            },
             LethalTouch,
             InGame,
             DangerType::GuardianAngel,

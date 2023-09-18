@@ -5,6 +5,7 @@ use bevy::{
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
+use serde::Deserialize;
 
 use crate::{app_state::AppState, in_game::Levels, menus::credits::Credits};
 
@@ -19,11 +20,30 @@ impl Plugin for MainGameAssetPlugin {
         )
         .add_collection_to_loading_state::<_, MainGameAssets>(AppState::LoadingMenu)
         .add_systems(PostUpdate, spawn_mesh)
-        .init_resource::<MainColorMaterial>();
+        .init_resource::<MainColorMaterial>()
+        .init_resource::<Locale>();
     }
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Copy, Clone, Default, Reflect, Deserialize, Resource)]
+pub enum Locale {
+    #[default]
+    Forest,
+    Hell,
+    Snow,
+}
+
+impl Locale {
+    pub fn bg_color(&self) -> Color {
+        match self {
+            Locale::Forest => Color::rgb(0.3, 0.39, 0.05),
+            Locale::Hell => Color::rgb(0.22, 0.03, 0.02),
+            Locale::Snow => Color::rgb(0.87, 0.88, 0.93),
+        }
+    }
+}
+
+#[derive(Component, Clone)]
 #[allow(dead_code)]
 pub enum WithMesh {
     Player,
@@ -54,6 +74,8 @@ pub enum WithMesh {
     LumberingDevil,
     DevilFace,
     Sunlight,
+    Decor,
+    Handle(Handle<Mesh>),
 }
 
 fn spawn_mesh(
@@ -61,6 +83,7 @@ fn spawn_mesh(
     meshes: Query<(Entity, &WithMesh)>,
     material: Res<MainColorMaterial>,
     assets: Option<Res<MainGameAssets>>,
+    locale: Res<Locale>,
     mut rng: ResMut<GlobalRng>,
 ) {
     let Some(assets) = assets else {
@@ -92,11 +115,21 @@ fn spawn_mesh(
             }
             WithMesh::Shadow(r) => {
                 transform.scale = Vec3::new(1., 1., 0.2) * 1.8 * *r;
-                rng.sample(&assets.shadows).unwrap().clone()
+                let list = match locale.as_ref() {
+                    Locale::Forest => &assets.shadows,
+                    Locale::Hell => &assets.hell_shadows,
+                    Locale::Snow => &assets.snow_shadows,
+                };
+                rng.sample(list).unwrap().clone()
             }
             WithMesh::RoadTile => {
                 transform.translation.z += 1.;
-                rng.sample(&assets.roads).unwrap().clone()
+                let list = match locale.as_ref() {
+                    Locale::Forest => &assets.roads,
+                    Locale::Hell => &assets.hellish_roads,
+                    Locale::Snow => &assets.snowy_roads,
+                };
+                rng.sample(list).unwrap().clone()
             }
             WithMesh::PentagramCircle => {
                 transform.translation.z += 1.3;
@@ -149,6 +182,19 @@ fn spawn_mesh(
             WithMesh::LumberingDevil => assets.lumbering_devil.clone(),
             WithMesh::DevilFace => assets.devil_face.clone(),
             WithMesh::Sunlight => assets.sunlight.clone(),
+            WithMesh::Handle(h) => {
+                transform.translation.z += 2.;
+                h.clone()
+            }
+            WithMesh::Decor => {
+                transform.translation.z += 1.4;
+                let list = match locale.as_ref() {
+                    Locale::Forest => &assets.grasses,
+                    Locale::Hell => continue,
+                    Locale::Snow => continue,
+                };
+                rng.sample(list).unwrap().clone()
+            }
         };
         let mesh = Mesh2dHandle(mesh.clone());
         let Some(mut e) = commands.get_entity(entity) else {
@@ -229,6 +275,22 @@ pub struct MainGameAssets {
         collection(typed)
     )]
     pub roads: Vec<Handle<Mesh>>,
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh42/Primitive0",
+            "models/meshes.gltf#Mesh43/Primitive0",
+        ),
+        collection(typed)
+    )]
+    pub hellish_roads: Vec<Handle<Mesh>>,
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh44/Primitive0",
+            "models/meshes.gltf#Mesh50/Primitive0",
+        ),
+        collection(typed)
+    )]
+    pub snowy_roads: Vec<Handle<Mesh>>,
     #[asset(path = "models/meshes.gltf#Mesh7/Primitive0")]
     pub lumbering_devil: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh28/Primitive0")]
@@ -251,11 +313,28 @@ pub struct MainGameAssets {
     #[asset(
         paths(
             "models/meshes.gltf#Mesh11/Primitive0",
-            "models/meshes.gltf#Mesh12/Primitive0"
+            "models/meshes.gltf#Mesh12/Primitive0",
+            "models/meshes.gltf#Mesh45/Primitive0",
         ),
         collection(typed)
     )]
     pub shadows: Vec<Handle<Mesh>>,
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh46/Primitive0",
+            "models/meshes.gltf#Mesh47/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub hell_shadows: Vec<Handle<Mesh>>,
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh48/Primitive0",
+            "models/meshes.gltf#Mesh49/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub snow_shadows: Vec<Handle<Mesh>>,
     #[asset(
         paths(
             "models/meshes.gltf#Mesh13/Primitive0",

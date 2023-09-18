@@ -13,8 +13,8 @@ use serde::Deserialize;
 
 use crate::{
     app_state::AppState,
-    assets::{WithMesh, ROAD_TILE_SIZE},
-    ui::colors::{DEFAULT_AMBIENT, SCREEN_BACKGROUND_COLOR},
+    assets::{Locale, WithMesh, ROAD_TILE_SIZE},
+    ui::colors::DEFAULT_AMBIENT,
 };
 
 use super::{
@@ -45,17 +45,23 @@ pub struct CurrentLevel {
     pub name: String,
     pub song: String,
     pub song_length: f32,
-    pub bg_color: Color,
-    pub ambient: Color,
     pub ambient_level: f32,
     pub curviness: f32,
     pub segments: Vec<Segment>,
 
     pub initial_text: Vec<String>,
     pub timed_text: Vec<(f32, f32, String)>,
+    pub locale: Locale,
+
+    pub person: Option<String>,
+    pub guardian: Option<String>,
 
     #[serde(skip)]
     pub song_handle: Option<Handle<AudioSource>>,
+    #[serde(skip)]
+    pub person_handle: Option<Handle<Mesh>>,
+    #[serde(skip)]
+    pub guardian_handle: Option<Handle<Mesh>>,
 }
 
 impl Default for CurrentLevel {
@@ -64,11 +70,14 @@ impl Default for CurrentLevel {
             name: "Default Level".to_string(),
             song: "music/crossroad-blues.flac".to_string(),
             song_handle: None,
+            person: None,
+            person_handle: None,
+            guardian_handle: None,
+            guardian: None,
+            locale: Locale::Forest,
             initial_text: vec![],
             timed_text: vec![],
             song_length: 60.,
-            bg_color: SCREEN_BACKGROUND_COLOR,
-            ambient: DEFAULT_AMBIENT.color,
             curviness: 120.,
             segments: vec![
                 Segment {
@@ -148,16 +157,29 @@ fn spawn_level(
 ) {
     info!("Rebuilding Level");
     let rng = rng.get_mut();
-    commands.insert_resource(ClearColor(level.bg_color));
-    commands.insert_resource(AmbientLight {
-        color: level.ambient,
-        brightness: level.ambient_level,
-    });
+    commands.insert_resource(ClearColor(level.locale.bg_color()));
+    commands.insert_resource(level.locale);
     let source = if let Some(handle) = &level.song_handle {
         handle.clone()
     } else {
         asset_server.load(&level.song)
     };
+
+    let person = if level.person_handle.is_some() {
+        level.person_handle.as_ref().cloned()
+    } else {
+        level.person.as_ref().map(|v| asset_server.load(v.as_str()))
+    };
+
+    let guardian = if level.guardian_handle.is_some() {
+        level.guardian_handle.as_ref().cloned()
+    } else {
+        level
+            .guardian
+            .as_ref()
+            .map(|v| asset_server.load(v.as_str()))
+    };
+
     commands.spawn((
         AudioBundle {
             source,
@@ -200,7 +222,12 @@ fn spawn_level(
                     ),
                     ..Default::default()
                 },
-                Person(level.song_length, level_shapes.target_path.clone()),
+                Person(
+                    level.song_length,
+                    level_shapes.target_path.clone(),
+                    person.clone(),
+                    guardian.clone(),
+                ),
             ));
 
             p.spawn((
@@ -221,6 +248,8 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
     let start_pos = Vec2::ZERO;
     let crossroads = Vec2::X * length + Vec2::Y * curviness * rng.f32_normalized();
     let end_pos = crossroads + Vec2::X * 600. + Vec2::Y * curviness * rng.f32_normalized();
+
+    let last_segment_id = segments - 1;
 
     let segments = ([0f32].into_iter())
         .chain(
@@ -274,34 +303,44 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
 
     let sections = target_path
         .iter()
-        .map_windows(|[a, b]| {
+        .enumerate()
+        .map_windows(|[(id, a), (_, b)]| {
             (
                 a.0 + Vec2::Y * 50. - Vec2::X * 50.,
                 a.0 + Vec2::Y * 650. - Vec2::X * 50.,
                 b.0 + Vec2::Y * 650. - Vec2::X * 50.,
                 b.0 + Vec2::Y * 50. - Vec2::X * 50.,
+                *id,
             )
         })
-        .chain(target_path.iter().map_windows(|[a, b]| {
-            (
-                a.0 - Vec2::Y * 650. - Vec2::X * 50.,
-                a.0 - Vec2::Y * 50. - Vec2::X * 50.,
-                b.0 - Vec2::Y * 50. - Vec2::X * 50.,
-                b.0 - Vec2::Y * 650. - Vec2::X * 50.,
-            )
-        }))
+        .chain(
+            target_path
+                .iter()
+                .enumerate()
+                .map_windows(|[(id, a), (_, b)]| {
+                    (
+                        a.0 - Vec2::Y * 650. - Vec2::X * 50.,
+                        a.0 - Vec2::Y * 50. - Vec2::X * 50.,
+                        b.0 - Vec2::Y * 50. - Vec2::X * 50.,
+                        b.0 - Vec2::Y * 650. - Vec2::X * 50.,
+                        *id,
+                    )
+                }),
+        )
         .chain([
             (
                 crossroads - Vec2::Y * 650.,
                 crossroads - Vec2::Y * 50. + Vec2::X * 50.,
                 end_pos - Vec2::Y * 50.,
                 end_pos - Vec2::Y * 300.,
+                last_segment_id,
             ),
             (
                 crossroads + Vec2::Y * 650.,
                 crossroads + Vec2::Y * 50. + Vec2::X * 50.,
                 end_pos + Vec2::Y * 50.,
                 end_pos + Vec2::Y * 300.,
+                last_segment_id,
             ),
         ])
         .map(LevelSections::from)
@@ -464,6 +503,7 @@ fn place_trees(
                 top_right: section.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
                 bottom_left: section.point_from_normalized(Vec2::new(x, y)),
                 bottom_right: section.point_from_normalized(Vec2::new(x + main_step, y)),
+                id: section.id,
             };
 
             let spawn_here = rng.f32() < density;
@@ -537,6 +577,7 @@ fn place_danger(
                 top_right: section.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
                 bottom_left: section.point_from_normalized(Vec2::new(x, y)),
                 bottom_right: section.point_from_normalized(Vec2::new(x + main_step, y)),
+                id: section.id,
             };
 
             let spawn_here = rng.f32() < density;
@@ -606,6 +647,7 @@ fn place_checkpoints(
                 top_right: section.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
                 bottom_left: section.point_from_normalized(Vec2::new(x, y)),
                 bottom_right: section.point_from_normalized(Vec2::new(x + main_step, y)),
+                id: section.id,
             };
 
             let spawn_here = rng.f32() < density;
@@ -650,6 +692,7 @@ pub struct LevelSections {
     pub top_right: Vec2,
     pub bottom_left: Vec2,
     pub bottom_right: Vec2,
+    pub id: usize,
 }
 
 impl LevelSections {
@@ -678,6 +721,7 @@ impl LevelSections {
             top_right,
             bottom_left,
             bottom_right,
+            id,
         } = self;
         let center = randomized_midpoint(top_left, bottom_left, rng);
         let left = randomized_midpoint(top_left, bottom_left, rng);
@@ -686,10 +730,10 @@ impl LevelSections {
         let bottom = randomized_midpoint(bottom_left, bottom_right, rng);
 
         [
-            (*bottom_left, left, center, bottom).into(),
-            (left, *top_left, top, center).into(),
-            (center, top, *top_right, right).into(),
-            (bottom, center, right, *bottom_right).into(),
+            (*bottom_left, left, center, bottom, *id).into(),
+            (left, *top_left, top, center, *id).into(),
+            (center, top, *top_right, right, *id).into(),
+            (bottom, center, right, *bottom_right, *id).into(),
         ]
     }
 
@@ -700,19 +744,22 @@ impl LevelSections {
     }
 }
 
-impl From<&(Vec2, Vec2, Vec2, Vec2)> for LevelSections {
-    fn from((bottom_left, top_left, top_right, bottom_right): &(Vec2, Vec2, Vec2, Vec2)) -> Self {
+impl From<&(Vec2, Vec2, Vec2, Vec2, usize)> for LevelSections {
+    fn from(
+        (bottom_left, top_left, top_right, bottom_right, id): &(Vec2, Vec2, Vec2, Vec2, usize),
+    ) -> Self {
         Self {
             top_left: *top_left,
             top_right: *top_right,
             bottom_left: *bottom_left,
             bottom_right: *bottom_right,
+            id: *id,
         }
     }
 }
 
-impl From<(Vec2, Vec2, Vec2, Vec2)> for LevelSections {
-    fn from(value: (Vec2, Vec2, Vec2, Vec2)) -> Self {
+impl From<(Vec2, Vec2, Vec2, Vec2, usize)> for LevelSections {
+    fn from(value: (Vec2, Vec2, Vec2, Vec2, usize)) -> Self {
         LevelSections::from(&value)
     }
 }
