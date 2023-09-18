@@ -249,7 +249,7 @@ fn spawn_level(
 fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -> LevelShape {
     let start_pos = Vec2::ZERO;
     let crossroads = Vec2::X * length + Vec2::Y * curviness * rng.f32_normalized();
-    let end_pos = crossroads + Vec2::X * 600. + Vec2::Y * curviness * rng.f32_normalized();
+    let end_pos = crossroads + Vec2::X * 1000. + Vec2::Y * curviness * rng.f32_normalized();
 
     let last_segment_id = segments - 1;
 
@@ -278,9 +278,9 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
     let crossroads = target_path.last().map(|(v, _)| *v).unwrap_or(crossroads);
 
     let cross_road_points = [
-        crossroads - Vec2::Y * 600.,
+        crossroads - Vec2::Y * 1000.,
         crossroads,
-        crossroads + Vec2::Y * 600.,
+        crossroads + Vec2::Y * 1000.,
     ];
 
     let roads = target_path
@@ -303,14 +303,14 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
         }])
         .collect::<Arc<[_]>>();
 
-    let sections = target_path
+    let sections: Arc<[LevelSections]> = target_path
         .iter()
         .enumerate()
         .map_windows(|[(id, a), (_, b)]| {
             (
                 a.0 + Vec2::Y * 50. - Vec2::X * 50.,
-                a.0 + Vec2::Y * 650. - Vec2::X * 50.,
-                b.0 + Vec2::Y * 650. - Vec2::X * 50.,
+                a.0 + Vec2::Y * 1050. - Vec2::X * 50.,
+                b.0 + Vec2::Y * 1050. - Vec2::X * 50.,
                 b.0 + Vec2::Y * 50. - Vec2::X * 50.,
                 *id,
             )
@@ -321,24 +321,24 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
                 .enumerate()
                 .map_windows(|[(id, a), (_, b)]| {
                     (
-                        a.0 - Vec2::Y * 650. - Vec2::X * 50.,
+                        a.0 - Vec2::Y * 1050. - Vec2::X * 50.,
                         a.0 - Vec2::Y * 50. - Vec2::X * 50.,
                         b.0 - Vec2::Y * 50. - Vec2::X * 50.,
-                        b.0 - Vec2::Y * 650. - Vec2::X * 50.,
+                        b.0 - Vec2::Y * 1050. - Vec2::X * 50.,
                         *id,
                     )
                 }),
         )
         .chain([
             (
-                crossroads - Vec2::Y * 650.,
+                crossroads - Vec2::Y * 1050.,
                 crossroads - Vec2::Y * 50. + Vec2::X * 50.,
                 end_pos - Vec2::Y * 50.,
                 end_pos - Vec2::Y * 300.,
                 last_segment_id,
             ),
             (
-                crossroads + Vec2::Y * 650.,
+                crossroads + Vec2::Y * 1050.,
                 crossroads + Vec2::Y * 50. + Vec2::X * 50.,
                 end_pos + Vec2::Y * 50.,
                 end_pos + Vec2::Y * 300.,
@@ -347,6 +347,17 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
         ])
         .map(LevelSections::from)
         .collect();
+
+    let player_start_point = sections
+        .first()
+        .map(|v| {
+            let x = (v.bottom_right.x - v.bottom_left.x) * 0.75 * rng.f32() + v.bottom_left.x;
+            let y = (v.top_left.y - v.bottom_left.y) * 0.5 * rng.f32() + v.top_left.y;
+            Vec2::new(x, y)
+        })
+        .unwrap_or(
+            start_pos + 400. * Vec2::Y + (100. * rng.f32_normalized()) + Vec2::X * 200. * rng.f32(),
+        );
 
     LevelShape {
         crossroads,
@@ -358,10 +369,7 @@ fn define_level_shape(rng: &Rng, length: f32, curviness: f32, segments: usize) -
             .unwrap_or_default(),
         target_path,
         section: sections,
-        player_start_point: start_pos
-            + 230. * Vec2::Y
-            + (100. * rng.f32_normalized())
-            + Vec2::X * 200. * rng.f32(),
+        player_start_point,
     }
 }
 
