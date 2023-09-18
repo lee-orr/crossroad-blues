@@ -1,13 +1,22 @@
-- name: "Crossroads Blues"
-  song: "music/crossroad-blues.flac"
-  song_length: 15
-  curviness: 150
+- name: "Tutorial"
+  song: "music/tutorial.flac"
+  song_length: 51
+  curviness: 100
   locale: Hell
   person: "models/meshes.gltf#Mesh35/Primitive0"
   guardian: "models/meshes.gltf#Mesh41/Primitive0"
   segments:
     - tree_density: 0.2
       checkpoint_density: 0.1
+      decor_density: 0.2
+      danger_densities: []
+    - tree_density: 0.4
+      checkpoint_density: 0.3
+      decor_density: 0.2
+      danger_densities: []
+    - tree_density: 0.4
+      checkpoint_density: 0.3
+      decor_density: 0.2
       danger_densities:
         - - LumberingDevil
           - 0.3
@@ -16,54 +25,118 @@
     - "Let's see what you've got first"
   timed_text:
     - - 0
-      - 5
-      - "Try to reach the crossroads. But remember - the sunlight hurts out there."
-    - - 7
-      - 10
-      - "The ritual is starting - get into the summoning circle before it's done!"
-- name: "Crossroads Blues"
-  song: "music/crossroad-blues-menu.flac"
-  song_length: 15
+      - 6
+      - "If you want to walk around, go ahead. But beware the sun."
+    - - 6
+      - 12
+      - "You can teleport by left-clicking a shadow in range, and can hold to keep teleporting"
+    - - 12
+      - 20
+      - "No head to the crossroads, but don't get too close."
+    - - 20
+      - 30
+      - "If you find checkpoints, pick them up. You can have up to 3 at a time."
+    - - 30
+      - 40
+      - "You can right click yourself to heal to how you were before, or right click an enemy to move them to where you where before"
+    - - 40
+      - 50
+      - "No the ritual is about to start - so go and jump right in there!"
+- name: "Vivacious Violinist"
+  song: "music/paganini.flac"
+  song_length: 60
   curviness: 150
+  locale: Snow
   segments:
     - tree_density: 0.2
       checkpoint_density: 0.1
       danger_densities: []
-    # - tree_density: 0.2
-    #   checkpoint_density: 0.3
-    #   danger_densities:
-    #     - - HolyHulk
-    #       - 0.3
-    # - tree_density: 0.4
-    #   checkpoint_density: 0.1
-    #   danger_densities:
-    #     - - HolyHulk
-    #       - 0.6
-    # - tree_density: 0.7
-    #   checkpoint_density: 0.2
-    #   danger_densities:
-    #     - - HolyHulk
-    #       - 0.2
-    #     - - StealthySeraphim
-    #       - 0.5
-    # - tree_density: 0.4
-    #   checkpoint_density: 0.2
-    #   danger_densities:
-    #     - - HolyHulk
-    #       - 0.6
-    #     - - StealthySeraphim
-    #       - 0.6
-    # - tree_density: 0.9
-    #   checkpoint_density: 0.1
-    #   danger_densities:
-    #     - - HolyHulk
-    #       - 0.6
-    #     - - StealthySeraphim
-    #       - 0.6
-    # - tree_density: 1
-    #   checkpoint_density: 0.3
-    #   danger_densities:
-    #     - - HolyHulk
-    #       - 0.7
-    #     - - StealthySeraphim
-    #       - 0.4
+    - tree_density: 0.2
+      checkpoint_density: 0.3
+      danger_densities:
+        - - HolyHulk
+          - 0.3
+    - tree_density: 0.4
+      checkpoint_density: 0.1
+      danger_densities:
+        - - HolyHulk
+          - 0.6
+    - tree_density: 0.7
+      checkpoint_density: 0.2
+      danger_densities:
+        - - HolyHulk
+          - 0.2
+        - - StealthySeraphim
+          - 0.5
+    - tree_density: 0.4
+      checkpoint_density: 0.2
+      danger_densities:
+        - - HolyHulk
+          - 0.6
+        - - StealthySeraphim
+          - 0.6
+    - tree_density: 0.9
+      checkpoint_density: 0.1
+      danger_densities:
+        - - HolyHulk
+          - 0.6
+        - - StealthySeraphim
+          - 0.6
+    - tree_density: 1
+      checkpoint_density: 0.4
+      danger_densities:
+        - - HolyHulk
+          - 0.7
+        - - StealthySeraphim
+          - 0.4
+
+- name: "Grand Guitarist"
+  song: "music/crossroad-blues-menu.flac"
+  song_length: 60
+  curviness: 230
+  segments:
+    - tree_density: 0.2
+      checkpoint_density: 0.1
+      danger_densities: []
+    - tree_density: 0.4
+      checkpoint_density: 0.3
+      danger_densities:
+        - - DivineDetonator
+          - 0.3
+    - tree_density: 0.6
+      checkpoint_density: 0.1
+      danger_densities:
+        - - DivineDetonator
+          - 0.6
+    - tree_density: 0.9
+      checkpoint_density: 0.2
+      danger_densities:
+        - - HolyHulk
+          - 0.2
+        - - StealthySeraphim
+          - 0.3
+    - tree_density: 0.5
+      checkpoint_density: 0.2
+      danger_densities:
+        - - AngelicArcher
+          - 0.6
+    - tree_density: 0.9
+      checkpoint_density: 0.1
+      danger_densities:
+        - - HolyHulk
+          - 0.3
+        - - StealthySeraphim
+          - 0.2
+        - - AngelicArcher
+          - 0.4
+    - tree_density: 0.9
+      checkpoint_density: 0.4
+      danger_densities:
+        - - HolyHulk
+          - 0.3
+        - - StealthySeraphim
+          - 0.2
+        - - AngelicArcher
+          - 0.4
+        - - DivineDetonator
+          - 0.1
