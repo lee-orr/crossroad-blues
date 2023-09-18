@@ -2,12 +2,10 @@
   song: "music/crossroad-blues.flac"
   song_length: 60
   curviness: 150
+  bg_color: !Rgba { red: 0.3, green: 0.39, blue: 0.05, alpha: 1 }
   segments:
     - tree_density: 0.2
       checkpoint_density: 0.1
-      danger_densities:
-        - - DivineDetonator
-          - 0.9
     - tree_density: 0.2
       checkpoint_density: 0.3
       danger_densities:
