@@ -54,10 +54,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, players: Query<
                         match &player.0 {
                             DamageType::Sunlight => "Sunlight Purifies, You are Impure",
                             DamageType::Danger(name) => match name {
-                                DangerType::HolyHulk => "Hammered by a Holy Hulk",
-                                DangerType::StealthySeraphim => "Sliced by a Stealthy Seraphim",
-                                DangerType::GuardianAngel => "Gutted by a Guardian Angel",
+                                DangerType::HolyHulk => "Hammered by Holy Hulk",
+                                DangerType::StealthySeraphim => "Slain by Stealthy Seraphim",
+                                DangerType::GuardianAngel => "Gutted by Guardian Angel",
                                 DangerType::AngelicArcher => "Abolished by Angelic Archers",
+                                DangerType::DivineDetonator => "Demolished by Divine Detonator",
                             },
                             DamageType::TimeOut => "You didn't reach the summoning on time",
                         },

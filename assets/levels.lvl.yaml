@@ -6,7 +6,7 @@
     - tree_density: 0.2
       checkpoint_density: 0.1
       danger_densities:
-        - - AngelicArcher
+        - - DivineDetonator
           - 0.9
     - tree_density: 0.2
       checkpoint_density: 0.3

@@ -17,11 +17,12 @@ use serde::Deserialize;
 
 use crate::{
     app_state::{AppState, DrawDebugGizmos},
-    in_game::angelic_archers::AngelicArcher,
+    in_game::{angelic_archers::AngelicArcher, divine_detonator::DivineDetonator},
 };
 
 use super::{
     angelic_archers::angelic_archer_plugin,
+    divine_detonator::divine_detonator_plugin,
     game_state::TemporaryIgnore,
     guardian_angel::guardian_angel_plugin,
     holy_hulk::{spawn_holy_hulk, HolyHulk},
@@ -69,6 +70,7 @@ pub fn danger_plugin(app: &mut ReloadableAppContents) {
     stealthy_seraphim_plugin(app);
     guardian_angel_plugin(app);
     angelic_archer_plugin(app);
+    divine_detonator_plugin(app);
 }
 
 #[derive(Component)]
@@ -82,6 +84,7 @@ pub enum DangerType {
     StealthySeraphim,
     GuardianAngel,
     AngelicArcher,
+    DivineDetonator,
 }
 
 #[derive(Component)]
@@ -241,6 +244,9 @@ pub fn spawn_danger(
                 }
                 DangerType::AngelicArcher => {
                     child.insert(AngelicArcher);
+                }
+                DangerType::DivineDetonator => {
+                    child.insert(DivineDetonator);
                 }
             };
         }

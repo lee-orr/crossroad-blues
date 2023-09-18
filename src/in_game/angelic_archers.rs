@@ -13,7 +13,6 @@ use super::{
     movement::{CanMove, Moving},
     player::Player,
     schedule::InGameUpdate,
-    shadow::CheckForShadow,
     souls::LethalTouch,
     InGame,
 };
@@ -39,17 +38,16 @@ fn spawn_angelic_archer(
     let now = time.elapsed_seconds();
     for danger in &dangers {
         commands.entity(danger).insert((
-            Name::new("Stealthy Seraphim"),
+            Name::new("Angelic Archer"),
             Danger(10.),
             CanMove { move_speed: 200. },
-            CheckForShadow,
             SpawnTime(now),
             Restlessness {
                 per_second: 25.,
                 current_restlessness: 0.,
             },
             Thinker::build()
-                .label("Stealthy Seraphim")
+                .label("Angelic Archer")
                 .picker(FirstToScore { threshold: 0.8 })
                 .when(
                     Shoot {
@@ -101,7 +99,7 @@ fn shooting(
                 ..Default::default()
             },
             AngelicArrow,
-            Name::new("Angelic Archer"),
+            Name::new("Angelic Arrow"),
             Danger(10.),
             CanMove { move_speed: 200. },
             Moving(direction),

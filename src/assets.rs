@@ -37,6 +37,8 @@ pub enum WithMesh {
     GuardianAngel,
     AngelicArchers,
     AngelicArrow,
+    DivineDetonator,
+    DivineDetonatorExplosion,
 }
 
 fn spawn_mesh(
@@ -109,6 +111,14 @@ fn spawn_mesh(
             WithMesh::AngelicArrow => {
                 transform.translation.z += 2.5;
                 assets.angelic_archer_arrow.clone()
+            }
+            WithMesh::DivineDetonator => {
+                transform.translation.z += 2.;
+                assets.divine_detonator.clone()
+            }
+            WithMesh::DivineDetonatorExplosion => {
+                transform.translation.z += 2.5;
+                assets.divine_detonator_explosion.clone()
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());
@@ -225,7 +235,9 @@ pub struct MainGameAssets {
     #[asset(path = "models/meshes.gltf#Mesh22/Primitive0")]
     pub angelic_archer_arrow: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh23/Primitive0")]
-    pub holy_smokes: Handle<Mesh>,
+    pub divine_detonator: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh27/Primitive0")]
+    pub divine_detonator_explosion: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh24/Primitive0")]
     pub guardian_angel: Handle<Mesh>,
     #[asset(path = "levels.lvl.yaml")]

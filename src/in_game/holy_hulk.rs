@@ -6,7 +6,6 @@ use crate::assets::WithMesh;
 use super::{
     danger::{Chase, Chasing, Danger, Meandering, Resting, Restless, Restlessness, SpawnTime},
     movement::CanMove,
-    shadow::CheckForShadow,
     souls::LethalTouch,
 };
 
@@ -24,7 +23,6 @@ pub fn spawn_holy_hulk(
             Name::new("Holy Hulk"),
             Danger(20.),
             CanMove { move_speed: 50. },
-            CheckForShadow,
             SpawnTime(now),
             Restlessness {
                 per_second: 25.,

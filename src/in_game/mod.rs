@@ -2,6 +2,7 @@ mod actions;
 mod angelic_archers;
 mod checkpoints;
 mod danger;
+mod divine_detonator;
 mod game_completed;
 mod game_over;
 mod game_state;
