@@ -132,6 +132,7 @@ pub struct Segment {
     pub tree_variation: f32,
     pub checkpoint_density: f32,
     pub checkpoint_variation: f32,
+    pub decor_density: f32,
     pub danger_densities: Vec<(DangerType, f32)>,
     pub split_levels: u8,
 }
@@ -145,6 +146,7 @@ impl Default for Segment {
             split_levels: 1,
             tree_variation: 0.2,
             checkpoint_variation: 0.2,
+            decor_density: 0.7,
         }
     }
 }
@@ -448,6 +450,16 @@ fn fill_section_inner(
         }
 
         commands
+            .spawn((SpatialBundle::default(), Name::new("Decor")))
+            .with_children(|p| {
+                let seed = rng.f32() * 23523.;
+                let decor_density = (simplex_noise_2d_seeded(center, seed).abs() * 0.5 + 0.5)
+                    * segment.decor_density;
+                let decor_density = decor_density.clamp(0., 1.);
+                place_decor(2, p, section, rng, decor_density);
+            });
+
+        commands
             .spawn((SpatialBundle::default(), Name::new("Checkpoints")))
             .with_children(|p| {
                 let seed = rng.f32() * 124326.;
@@ -668,6 +680,73 @@ fn place_checkpoints(
                 },
                 Checkpoint,
                 WithMesh::Checkpoint,
+            ));
+        }
+    }
+}
+
+const DECOR_DISTANCES: &[f32] = &[1000., 500., 100.];
+
+fn place_decor(
+    level: usize,
+    commands: &mut ChildBuilder,
+    section: &LevelSections,
+    rng: &Rng,
+    density: f32,
+) {
+    info!("Placing Decor with density {density}");
+    let main_axis = section.main_axis_min_length();
+    let cross_axis = section.cross_axis_min_length();
+
+    let Some(size) = DECOR_DISTANCES.get(level) else {
+        if level > DECOR_DISTANCES.len() && !DECOR_DISTANCES.is_empty() {
+            place_decor(DECOR_DISTANCES.len() - 1, commands, section, rng, density);
+        }
+        error!("No decor distances available");
+        return;
+    };
+
+    if (main_axis < *size || cross_axis < *size) && level > 0 {
+        place_decor(level - 1, commands, section, rng, density);
+        return;
+    }
+
+    let main_tiles = (main_axis / size).round().max(1.) as usize;
+    let cross_tiles = (cross_axis / size).round().max(1.) as usize;
+    let main_step = 1. / (main_tiles as f32);
+    let cross_step = 1. / (cross_tiles as f32);
+
+    for x in 0..main_tiles {
+        for y in 0..cross_tiles {
+            let x = (x as f32) * main_step;
+            let y = (y as f32) * cross_step;
+            let inner = LevelSections {
+                top_left: section.point_from_normalized(Vec2::new(x, y + cross_step)),
+                top_right: section.point_from_normalized(Vec2::new(x + main_step, y + cross_step)),
+                bottom_left: section.point_from_normalized(Vec2::new(x, y)),
+                bottom_right: section.point_from_normalized(Vec2::new(x + main_step, y)),
+                id: section.id,
+            };
+
+            let spawn_here = rng.f32() < density;
+            if !spawn_here {
+                if level > 0 {
+                    info!("going a level deeper");
+                    place_decor(level - 1, commands, &inner, rng, density);
+                }
+                continue;
+            }
+            let point = inner.point_from_normalized(Vec2::new(
+                rng.f32_normalized() * 0.5 + 0.5,
+                rng.f32_normalized() * 0.5 + 0.5,
+            ));
+            info!("Spawning.... at {point:?}");
+            commands.spawn((
+                SpatialBundle {
+                    transform: Transform::from_translation(point.extend(0.)),
+                    ..Default::default()
+                },
+                WithMesh::Decor,
             ));
         }
     }

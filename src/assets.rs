@@ -190,8 +190,8 @@ fn spawn_mesh(
                 transform.translation.z += 1.4;
                 let list = match locale.as_ref() {
                     Locale::Forest => &assets.grasses,
-                    Locale::Hell => continue,
-                    Locale::Snow => continue,
+                    Locale::Hell => &assets.bones,
+                    Locale::Snow => &assets.snow,
                 };
                 rng.sample(list).unwrap().clone()
             }
@@ -257,6 +257,26 @@ pub struct MainGameAssets {
         collection(typed)
     )]
     pub grasses: Vec<Handle<Mesh>>,
+
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh51/Primitive0",
+            "models/meshes.gltf#Mesh52/Primitive0",
+            "models/meshes.gltf#Mesh53/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub bones: Vec<Handle<Mesh>>,
+
+    #[asset(
+        paths(
+            "models/meshes.gltf#Mesh54/Primitive0",
+            "models/meshes.gltf#Mesh55/Primitive0",
+            "models/meshes.gltf#Mesh56/Primitive0"
+        ),
+        collection(typed)
+    )]
+    pub snow: Vec<Handle<Mesh>>,
     #[asset(path = "models/meshes.gltf#Mesh4/Primitive0")]
     pub player: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh34/Primitive0")]
