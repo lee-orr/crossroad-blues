@@ -44,11 +44,11 @@ fn spawn_person(
     mut commands: Commands,
 ) {
     for (person, mut p) in &mut people {
-        let start_time = p.0 - 10.;
+        let start_time = p.0 - 7.;
         let end_time = p.0;
         let radius = 30.;
 
-        p.0 -= 11.;
+        p.0 -= 6.;
         let mut path = Vec::from_iter(p.1.iter().cloned());
         let position = if let Some(last) = path.last_mut() {
             let position = last.0;
@@ -79,7 +79,7 @@ fn start_ritual(
     for (entity, ritual, time) in &rituals {
         if time.0 >= ritual.start_time {
             let punch_duration = Duration::from_secs_f32(0.5);
-            let circle_duration = Duration::from_secs_f32(4.);
+            let circle_duration = Duration::from_secs_f32(2.);
             commands.entity(entity).insert(RitualProceeding);
 
             let punch_animation = Tween::new(
@@ -104,7 +104,7 @@ fn start_ritual(
             ));
 
             let angle_offset = (-360. / 5f32).to_radians();
-            let triangle_start = 5.;
+            let triangle_start = 2.;
 
             for i in 0..5 {
                 let i = i as f32;
