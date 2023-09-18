@@ -24,6 +24,7 @@ impl Plugin for MainGameAssetPlugin {
 }
 
 #[derive(Component, Clone, Copy)]
+#[allow(dead_code)]
 pub enum WithMesh {
     Player,
     HolyHulk,

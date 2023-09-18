@@ -13,7 +13,7 @@ use app_state::AppState;
 use assets::{MainGameAssetPlugin, MainGameAssets};
 use bevy::{
     asset::ChangeWatcher,
-    core_pipeline::{clear_color::ClearColorConfig, tonemapping::Tonemapping},
+    core_pipeline::tonemapping::Tonemapping,
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     input::common_conditions::input_toggle_active,
     prelude::*,

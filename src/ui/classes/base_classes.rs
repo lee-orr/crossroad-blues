@@ -21,10 +21,6 @@ pub fn overlay(b: &mut NodeBundle) {
     b.background_color.0 = OVERLAY_COLOR;
 }
 
-pub fn opaque(b: &mut dyn IntermediaryNodeBundleHandler) {
-    b.background_color().0 = colors::SCREEN_BACKGROUND_COLOR;
-}
-
 pub fn primary_box(b: &mut NodeBundle) {
     b.style.margin = UiRect::all(Val::Px(10.));
     b.style.padding = UiRect::all(Val::Px(30.));
