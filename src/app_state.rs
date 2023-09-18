@@ -9,6 +9,7 @@ pub enum AppState {
     MainMenu,
     Credits,
     InGame,
+    Levels,
 }
 
 #[derive(Resource, Default)]

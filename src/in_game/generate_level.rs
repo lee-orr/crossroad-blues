@@ -1,12 +1,15 @@
-use std::{f32::consts, sync::Arc, time::Duration};
+use std::{f32::consts, sync::Arc};
 
 use bevy::{
     audio::{Volume, VolumeLevel},
     prelude::*,
+    reflect::TypeUuid,
 };
+use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
 use bevy_turborand::{rng::Rng, DelegatedRng, GlobalRng, TurboRand};
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use noisy_bevy::simplex_noise_2d_seeded;
+use serde::Deserialize;
 
 use crate::{
     app_state::AppState,
@@ -20,16 +23,31 @@ use super::{
 };
 
 pub fn level_generate_plugin(app: &mut ReloadableAppContents) {
-    app.reset_resource::<CurrentLevel>()
-        .reset_setup_in_state::<InGame, _, _>(AppState::InGame, spawn_level);
+    app.reset_setup_in_state::<InGame, _, _>(AppState::InGame, spawn_level);
 }
 
-#[derive(Resource)]
+#[derive(Reflect, Resource, InspectorOptions, Deserialize, TypeUuid, Clone)]
+#[uuid = "a558ec88-0278-4972-b047-f1ab68ef20fd"]
+#[serde(default)]
+#[reflect(Resource, InspectorOptions)]
+pub struct Levels(pub Vec<CurrentLevel>);
+
+impl Default for Levels {
+    fn default() -> Self {
+        Self(vec![CurrentLevel::default()])
+    }
+}
+
+#[derive(Resource, Reflect, InspectorOptions, Deserialize, Clone)]
+#[serde(default)]
+#[reflect(Resource, InspectorOptions)]
 pub struct CurrentLevel {
+    pub name: String,
     pub song: String,
-    pub song_length: Duration,
+    pub song_length: f32,
     pub bg_color: Color,
-    pub ambient: AmbientLight,
+    pub ambient: Color,
+    pub ambient_level: f32,
     pub curviness: f32,
     pub segments: Vec<Segment>,
 }
@@ -37,10 +55,11 @@ pub struct CurrentLevel {
 impl Default for CurrentLevel {
     fn default() -> Self {
         Self {
+            name: "Default Level".to_string(),
             song: "music/crossroad-blues.flac".to_string(),
-            song_length: Duration::from_secs(60),
+            song_length: 60.,
             bg_color: SCREEN_BACKGROUND_COLOR,
-            ambient: DEFAULT_AMBIENT,
+            ambient: DEFAULT_AMBIENT.color,
             curviness: 120.,
             segments: vec![
                 Segment {
@@ -83,11 +102,13 @@ impl Default for CurrentLevel {
                     ..Default::default()
                 },
             ],
+            ambient_level: DEFAULT_AMBIENT.brightness,
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Reflect, InspectorOptions, Deserialize)]
+#[serde(default)]
 pub struct Segment {
     pub tree_density: f32,
     pub tree_variation: f32,
@@ -119,7 +140,10 @@ fn spawn_level(
     info!("Rebuilding Level");
     let rng = rng.get_mut();
     commands.insert_resource(ClearColor(level.bg_color));
-    commands.insert_resource(level.ambient.clone());
+    commands.insert_resource(AmbientLight {
+        color: level.ambient,
+        brightness: level.ambient_level,
+    });
     commands.spawn((
         AudioBundle {
             source: asset_server.load(&level.song),
@@ -135,7 +159,7 @@ fn spawn_level(
 
     let level_shapes = define_level_shape(
         rng,
-        level.song_length.as_secs_f32() * default_move * (0.5 + 0.3 * rng.f32()) / 2.,
+        level.song_length * default_move * (0.5 + 0.3 * rng.f32()) / 2.,
         level.curviness,
         level.segments.len().max(1),
     );
@@ -162,10 +186,7 @@ fn spawn_level(
                     ),
                     ..Default::default()
                 },
-                Person(
-                    level.song_length.as_secs_f32(),
-                    level_shapes.target_path.clone(),
-                ),
+                Person(level.song_length, level_shapes.target_path.clone()),
             ));
 
             p.spawn((

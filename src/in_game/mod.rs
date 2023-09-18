@@ -18,6 +18,7 @@ mod stealthy_seraphim;
 mod teleport;
 
 use bevy::{input::common_conditions::input_toggle_active, prelude::*};
+use bevy_common_assets::yaml::YamlAssetPlugin;
 use bevy_inspector_egui::quick::StateInspectorPlugin;
 
 use big_brain::{
@@ -38,6 +39,7 @@ use crate::{
 
 use self::{
     actions::PlayerAction,
+    danger::DangerType,
     game_completed::GameCompletedPlugin,
     game_over::GameOverPlugin,
     game_state::{GameState, PauseState},
@@ -54,6 +56,7 @@ use dexterous_developer::{
     dexterous_developer_setup, ReloadableAppContents, ReloadableElementsSetup,
 };
 
+pub use generate_level::Levels;
 pub use player::TrackingCamera;
 pub struct InGamePlugin;
 
@@ -72,6 +75,12 @@ impl Plugin for InGamePlugin {
         .register_type::<Actor>()
         .register_type::<Score>()
         .register_type::<ActionState>()
+        .register_type::<Levels>()
+        .register_type::<CurrentLevel>()
+        .register_type::<Segment>()
+        .register_type::<DangerType>()
+        .register_asset_reflect::<Levels>()
+        .add_plugins(YamlAssetPlugin::<Levels>::new(&["lvl.yaml"]))
         .add_event::<Damage>()
         .add_event::<Death>()
         .add_plugins(

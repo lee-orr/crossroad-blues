@@ -4,6 +4,7 @@ use bevy::{
     prelude::*,
     utils::{HashMap, HashSet},
 };
+use bevy_inspector_egui::InspectorOptions;
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 use bevy_vector_shapes::{prelude::ShapePainter, shapes::DiscPainter};
 use big_brain::{
@@ -12,6 +13,7 @@ use big_brain::{
     thinker::{ActionSpan, Actor, HasThinker, Thinker},
 };
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
+use serde::Deserialize;
 
 use crate::app_state::{AppState, DrawDebugGizmos};
 
@@ -69,7 +71,7 @@ pub struct Danger(pub f32);
 #[derive(Component)]
 pub struct DangerSpawner(pub Entity);
 
-#[derive(Component, Clone, Copy, Debug)]
+#[derive(Component, Clone, Copy, Debug, Reflect, Deserialize, InspectorOptions)]
 pub enum DangerType {
     HolyHulk,
     StealthySeraphim,

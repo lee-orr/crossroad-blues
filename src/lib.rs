@@ -19,21 +19,25 @@ use bevy::{
     prelude::*,
 };
 
-use bevy_inspector_egui::quick::{StateInspectorPlugin, WorldInspectorPlugin};
+use bevy_inspector_egui::{
+    prelude::ReflectInspectorOptions,
+    quick::{StateInspectorPlugin, WorldInspectorPlugin},
+    InspectorOptions,
+};
 use bevy_sequential_actions::SequentialActionsPlugin;
 use bevy_turborand::prelude::RngPlugin;
 use bevy_tweening::TweeningPlugin;
 use bevy_vector_shapes::Shape2dPlugin;
 use credits::CreditsPlugin;
 use dexterous_developer::{hot_bevy_main, InitialPlugins};
-use in_game::{InGamePlugin, TrackingCamera};
+use in_game::{InGamePlugin, Levels, TrackingCamera};
 use loading_state::LoadingScreenPlugin;
 use menu::MainMenuPlugin;
 use menus::{credits, loading_state, menu};
 
 use ui::{colors::DEFAULT_AMBIENT, UiPlugin};
 
-use crate::app_state::DrawDebugGizmos;
+use crate::{app_state::DrawDebugGizmos, menus::levels::LevelsPlugin};
 
 #[hot_bevy_main]
 fn bevy_main(initial: impl InitialPlugins) {
@@ -67,11 +71,13 @@ fn bevy_main(initial: impl InitialPlugins) {
         .insert_resource(ClearColor(ui::colors::SCREEN_BACKGROUND_COLOR))
         .insert_resource(DEFAULT_AMBIENT)
         .init_resource::<DrawDebugGizmos>()
+        .init_resource::<Levels>()
         .add_plugins((
             LoadingScreenPlugin,
             MainMenuPlugin,
             CreditsPlugin,
             InGamePlugin,
+            LevelsPlugin,
             MainGameAssetPlugin,
             UiPlugin,
         ))
@@ -84,6 +90,7 @@ fn bevy_main(initial: impl InitialPlugins) {
         )
         .add_systems(Startup, setup)
         .add_systems(Update, toggle_gizmos)
+        .add_systems(OnExit(AppState::LoadingMenu), insert_level_list)
         .run();
 }
 
@@ -113,3 +120,19 @@ fn toggle_gizmos(mut commands: Commands, gizmos: Res<DrawDebugGizmos>, input: Re
         commands.insert_resource(gizmos);
     }
 }
+
+fn insert_level_list(
+    mut commands: Commands,
+    assets: Res<MainGameAssets>,
+    levels: Res<Assets<Levels>>,
+) {
+    let levels = levels.get(&assets.levels).cloned().unwrap_or_default();
+    let current = levels.0.get(0).cloned().unwrap_or_default();
+    commands.insert_resource(levels);
+    commands.insert_resource(current);
+    commands.insert_resource(CurrentLevelID::default())
+}
+
+#[derive(Clone, Copy, Resource, Reflect, InspectorOptions, Default)]
+#[reflect(Resource, InspectorOptions)]
+struct CurrentLevelID(usize);

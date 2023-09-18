@@ -6,7 +6,7 @@ use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppE
 use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
 use bevy_turborand::{DelegatedRng, GlobalRng, TurboRand};
 
-use crate::{app_state::AppState, menus::credits::Credits};
+use crate::{app_state::AppState, in_game::Levels, menus::credits::Credits};
 
 pub struct MainGameAssetPlugin;
 
@@ -218,4 +218,6 @@ pub struct MainGameAssets {
     pub holy_smokes: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh24/Primitive0")]
     pub guardian_angel: Handle<Mesh>,
+    #[asset(path = "levels.lvl.yaml")]
+    pub levels: Handle<Levels>,
 }

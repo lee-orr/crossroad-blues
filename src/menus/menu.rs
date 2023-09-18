@@ -104,7 +104,7 @@ fn process_input(
         return;
     };
     match btn {
-        Buttons::Start => commands.insert_resource(NextState(Some(AppState::InGame))),
+        Buttons::Start => commands.insert_resource(NextState(Some(AppState::Levels))),
         Buttons::Credits => commands.insert_resource(NextState(Some(AppState::Credits))),
     };
 }

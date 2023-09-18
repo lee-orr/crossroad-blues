@@ -1,0 +1,45 @@
+- name: "Crossroads Blues"
+  song: "music/crossroad-blues.flac"
+  song_length: 60
+  curviness: 150
+  segments:
+    - tree_density: 0.2
+      checkpoint_density: 0.1
+    - tree_density: 0.2
+      checkpoint_density: 0.3
+      danger_densities:
+        - - HolyHulk
+          - 0.3
+    - tree_density: 0.4
+      checkpoint_density: 0.1
+      danger_densities:
+        - - HolyHulk
+          - 0.6
+    - tree_density: 0.7
+      checkpoint_density: 0.2
+      danger_densities:
+        - - HolyHulk
+          - 0.2
+        - - StealthySeraphim
+          - 0.5
+    - tree_density: 0.4
+      checkpoint_density: 0.2
+      danger_densities:
+        - - HolyHulk
+          - 0.6
+        - - StealthySeraphim
+          - 0.6
+    - tree_density: 0.9
+      checkpoint_density: 0.1
+      danger_densities:
+        - - HolyHulk
+          - 0.6
+        - - StealthySeraphim
+          - 0.6
+    - tree_density: 1
+      checkpoint_density: 0.3
+      danger_densities:
+        - - HolyHulk
+          - 0.7
+        - - StealthySeraphim
+          - 0.4
