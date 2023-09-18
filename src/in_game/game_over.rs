@@ -57,6 +57,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, players: Query<
                                 DangerType::HolyHulk => "Hammered by a Holy Hulk",
                                 DangerType::StealthySeraphim => "Sliced by a Stealthy Seraphim",
                                 DangerType::GuardianAngel => "Gutted by a Guardian Angel",
+                                DangerType::AngelicArcher => "Abolished by Angelic Archers",
                             },
                             DamageType::TimeOut => "You didn't reach the summoning on time",
                         },

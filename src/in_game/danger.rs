@@ -15,9 +15,13 @@ use big_brain::{
 use dexterous_developer::{ReloadableApp, ReloadableAppContents};
 use serde::Deserialize;
 
-use crate::app_state::{AppState, DrawDebugGizmos};
+use crate::{
+    app_state::{AppState, DrawDebugGizmos},
+    in_game::angelic_archers::AngelicArcher,
+};
 
 use super::{
+    angelic_archers::angelic_archer_plugin,
     game_state::TemporaryIgnore,
     guardian_angel::guardian_angel_plugin,
     holy_hulk::{spawn_holy_hulk, HolyHulk},
@@ -64,6 +68,7 @@ pub fn danger_plugin(app: &mut ReloadableAppContents) {
     .reset_resource::<CollisionGrid>();
     stealthy_seraphim_plugin(app);
     guardian_angel_plugin(app);
+    angelic_archer_plugin(app);
 }
 
 #[derive(Component)]
@@ -76,6 +81,7 @@ pub enum DangerType {
     HolyHulk,
     StealthySeraphim,
     GuardianAngel,
+    AngelicArcher,
 }
 
 #[derive(Component)]
@@ -232,6 +238,9 @@ pub fn spawn_danger(
                     error!("Shouldn't get here");
                     child.despawn();
                     commands.entity(danger).despawn();
+                }
+                DangerType::AngelicArcher => {
+                    child.insert(AngelicArcher);
                 }
             };
         }

@@ -1,4 +1,5 @@
 mod actions;
+mod angelic_archers;
 mod checkpoints;
 mod danger;
 mod game_completed;

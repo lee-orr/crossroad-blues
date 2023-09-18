@@ -35,6 +35,8 @@ pub enum WithMesh {
     Person,
     StealthySeraphim,
     GuardianAngel,
+    AngelicArchers,
+    AngelicArrow,
 }
 
 fn spawn_mesh(
@@ -99,6 +101,14 @@ fn spawn_mesh(
             WithMesh::GuardianAngel => {
                 transform.translation.z += 2.;
                 assets.guardian_angel.clone()
+            }
+            WithMesh::AngelicArchers => {
+                transform.translation.z += 2.;
+                assets.angelic_archer.clone()
+            }
+            WithMesh::AngelicArrow => {
+                transform.translation.z += 2.5;
+                assets.angelic_archer_arrow.clone()
             }
         };
         let mesh = Mesh2dHandle(mesh.clone());
