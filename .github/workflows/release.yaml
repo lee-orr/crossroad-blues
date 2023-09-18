@@ -90,142 +90,142 @@ jobs:
           overwrite: true
 
   # Build for Linux
-  release-linux:
-    runs-on: ubuntu-latest
-    needs: setup-build-name
+  # release-linux:
+  #   runs-on: ubuntu-latest
+  #   needs: setup-build-name
 
-    steps:
-      - run: |
-          echo "Binary is ${{ needs.setup-build-name.outputs.binary}}"
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly
-          target: x86_64-unknown-linux-gnu
+  #   steps:
+  #     - run: |
+  #         echo "Binary is ${{ needs.setup-build-name.outputs.binary}}"
+  #     - uses: actions/checkout@v3
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: nightly
+  #         target: x86_64-unknown-linux-gnu
 
-      - name: install dependencies
-        run: |
-          sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+  #     - name: install dependencies
+  #       run: |
+  #         sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
 
-      - name: Build
-        run: |
-          cargo build --release --target x86_64-unknown-linux-gnu
+  #     - name: Build
+  #       run: |
+  #         cargo build --release --target x86_64-unknown-linux-gnu
 
-      - name: Prepare package
-        run: |
-          mkdir linux
-          cp target/x86_64-unknown-linux-gnu/release/${{ needs.setup-build-name.outputs.binary}} linux/
-          cp -r assets linux/
+  #     - name: Prepare package
+  #       run: |
+  #         mkdir linux
+  #         cp target/x86_64-unknown-linux-gnu/release/${{ needs.setup-build-name.outputs.binary}} linux/
+  #         cp -r assets linux/
 
-      - name: Package as a zip
-        working-directory: ./linux
-        run: |
-          zip --recurse-paths ../${{ needs.setup-build-name.outputs.binary}}.zip .
+  #     - name: Package as a zip
+  #       working-directory: ./linux
+  #       run: |
+  #         zip --recurse-paths ../${{ needs.setup-build-name.outputs.binary}}.zip .
 
-      - name: Upload binaries to artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          path: ${{ needs.setup-build-name.outputs.binary}}.zip
-          name: linux
+  #     - name: Upload binaries to artifacts
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ${{ needs.setup-build-name.outputs.binary}}.zip
+  #         name: linux
 
-      - name: Upload binaries to release
-        if: ${{ env.add_binaries_to_github_release == 'true' }}
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ needs.setup-build-name.outputs.binary}}.zip
-          asset_name: ${{ needs.setup-build-name.outputs.binary}}-linux-${{ env.release_version }}.zip
-          tag: ${{ env.release_version }}
-          overwrite: true
+  #     - name: Upload binaries to release
+  #       if: ${{ env.add_binaries_to_github_release == 'true' }}
+  #       uses: svenstaro/upload-release-action@v2
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: ${{ needs.setup-build-name.outputs.binary}}.zip
+  #         asset_name: ${{ needs.setup-build-name.outputs.binary}}-linux-${{ env.release_version }}.zip
+  #         tag: ${{ env.release_version }}
+  #         overwrite: true
 
-  # Build for Windows
-  release-windows:
-    runs-on: windows-latest
-    needs: setup-build-name
+  # # Build for Windows
+  # release-windows:
+  #   runs-on: windows-latest
+  #   needs: setup-build-name
 
-    steps:
-      - run: |
-          echo "Binary is ${{ needs.setup-build-name.outputs.binary}}"
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly
-          target: x86_64-pc-windows-msvc
+  #   steps:
+  #     - run: |
+  #         echo "Binary is ${{ needs.setup-build-name.outputs.binary}}"
+  #     - uses: actions/checkout@v3
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: nightly
+  #         target: x86_64-pc-windows-msvc
 
-      - name: Build
-        run: |
-          cargo build --release --target x86_64-pc-windows-msvc
+  #     - name: Build
+  #       run: |
+  #         cargo build --release --target x86_64-pc-windows-msvc
 
-      - name: Prepare package
-        run: |
-          mkdir windows
-          cp target/x86_64-pc-windows-msvc/release/${{ needs.setup-build-name.outputs.binary}}.exe windows/
-          cp -r assets windows/
+  #     - name: Prepare package
+  #       run: |
+  #         mkdir windows
+  #         cp target/x86_64-pc-windows-msvc/release/${{ needs.setup-build-name.outputs.binary}}.exe windows/
+  #         cp -r assets windows/
 
-      - name: Package as a zip
-        run: |
-          Compress-Archive -Path windows/* -DestinationPath ${{ needs.setup-build-name.outputs.binary}}.zip
+  #     - name: Package as a zip
+  #       run: |
+  #         Compress-Archive -Path windows/* -DestinationPath ${{ needs.setup-build-name.outputs.binary}}.zip
 
-      - name: Upload binaries to artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          path: ${{ needs.setup-build-name.outputs.binary}}.zip
-          name: windows
+  #     - name: Upload binaries to artifacts
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ${{ needs.setup-build-name.outputs.binary}}.zip
+  #         name: windows
 
-      - name: Upload binaries to release
-        if: ${{ env.add_binaries_to_github_release == 'true' }}
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ needs.setup-build-name.outputs.binary}}.zip
-          asset_name: ${{ needs.setup-build-name.outputs.binary}}-windows-${{ env.release_version }}.zip
-          tag: ${{ env.release_version }}
-          overwrite: true
+  #     - name: Upload binaries to release
+  #       if: ${{ env.add_binaries_to_github_release == 'true' }}
+  #       uses: svenstaro/upload-release-action@v2
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: ${{ needs.setup-build-name.outputs.binary}}.zip
+  #         asset_name: ${{ needs.setup-build-name.outputs.binary}}-windows-${{ env.release_version }}.zip
+  #         tag: ${{ env.release_version }}
+  #         overwrite: true
 
-  # Build for macOS
-  release-macos:
-    runs-on: macOS-latest
-    needs: setup-build-name
+  # # Build for macOS
+  # release-macos:
+  #   runs-on: macOS-latest
+  #   needs: setup-build-name
 
-    steps:
-      - run: |
-          echo "Binary is ${{ needs.setup-build-name.outputs.binary}}"
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly
-          target: x86_64-apple-darwin
-      - name: Environment Setup
-        run: |
-          export CFLAGS="-fno-stack-check"
-          export MACOSX_DEPLOYMENT_TARGET="10.9"
+  #   steps:
+  #     - run: |
+  #         echo "Binary is ${{ needs.setup-build-name.outputs.binary}}"
+  #     - uses: actions/checkout@v3
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: nightly
+  #         target: x86_64-apple-darwin
+  #     - name: Environment Setup
+  #       run: |
+  #         export CFLAGS="-fno-stack-check"
+  #         export MACOSX_DEPLOYMENT_TARGET="10.9"
 
-      - name: Build
-        run: |
-          cargo build --release --target x86_64-apple-darwin
+  #     - name: Build
+  #       run: |
+  #         cargo build --release --target x86_64-apple-darwin
 
-      - name: Prepare Package
-        run: |
-          mkdir -p ${{ needs.setup-build-name.outputs.binary}}.app/Contents/MacOS
-          cp target/x86_64-apple-darwin/release/${{ needs.setup-build-name.outputs.binary}} ${{ needs.setup-build-name.outputs.binary}}.app/Contents/MacOS/
-          cp -r assets ${{ needs.setup-build-name.outputs.binary}}.app/Contents/MacOS/
-          hdiutil create -fs HFS+ -volname " ${{ needs.setup-build-name.outputs.binary}}" -srcfolder ${{ needs.setup-build-name.outputs.binary}}.app ${{ needs.setup-build-name.outputs.binary}}.dmg
+  #     - name: Prepare Package
+  #       run: |
+  #         mkdir -p ${{ needs.setup-build-name.outputs.binary}}.app/Contents/MacOS
+  #         cp target/x86_64-apple-darwin/release/${{ needs.setup-build-name.outputs.binary}} ${{ needs.setup-build-name.outputs.binary}}.app/Contents/MacOS/
+  #         cp -r assets ${{ needs.setup-build-name.outputs.binary}}.app/Contents/MacOS/
+  #         hdiutil create -fs HFS+ -volname " ${{ needs.setup-build-name.outputs.binary}}" -srcfolder ${{ needs.setup-build-name.outputs.binary}}.app ${{ needs.setup-build-name.outputs.binary}}.dmg
 
-      - name: Upload binaries to artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          path: ${{ needs.setup-build-name.outputs.binary}}.dmg
-          name: mac
+  #     - name: Upload binaries to artifacts
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         path: ${{ needs.setup-build-name.outputs.binary}}.dmg
+  #         name: mac
 
-      - name: Upload binaries to release
-        if: ${{ env.add_binaries_to_github_release == 'true' }}
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ needs.setup-build-name.outputs.binary}}.dmg
-          asset_name: ${{ needs.setup-build-name.outputs.binary}}-macos-${{ env.release_version }}.dmg
-          tag: ${{ env.release_version }}
-          overwrite: true
+  #     - name: Upload binaries to release
+  #       if: ${{ env.add_binaries_to_github_release == 'true' }}
+  #       uses: svenstaro/upload-release-action@v2
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: ${{ needs.setup-build-name.outputs.binary}}.dmg
+  #         asset_name: ${{ needs.setup-build-name.outputs.binary}}-macos-${{ env.release_version }}.dmg
+  #         tag: ${{ env.release_version }}
+  #         overwrite: true
 
   check-if-upload-to-itch-is-configured:
     needs: setup-build-name
@@ -269,9 +269,9 @@ jobs:
     needs:
       - check-if-upload-to-itch-is-configured
       - release-wasm
-      - release-linux
-      - release-windows
-      - release-macos
+      # - release-linux
+      # - release-windows
+      # - release-macos
     if: ${{ needs.check-if-upload-to-itch-is-configured.outputs.should-upload == 'yes' }}
 
     steps:
