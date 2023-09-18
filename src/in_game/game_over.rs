@@ -4,9 +4,11 @@ use bevy_ui_dsl::*;
 
 use crate::{
     app_state::AppState,
+    assets::WithMesh,
     ui::{
         buttons::{focus_text_button, focused_button_activated, TypedFocusedButtonQuery},
         classes::*,
+        colors::SCREEN_BACKGROUND_COLOR,
         intermediary_node_bundles::*,
     },
 };
@@ -14,7 +16,10 @@ use dexterous_developer::{
     dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
 };
 
-use super::{danger::DangerType, game_state::GameState, player::DiedOf, souls::DamageType};
+use super::{
+    danger::DangerType, game_state::GameState, player::DiedOf, souls::DamageType, InGame,
+    TrackingCamera,
+};
 pub struct GameOverPlugin;
 
 impl Plugin for GameOverPlugin {
@@ -41,9 +46,16 @@ struct Screen;
 #[derive(Component)]
 struct Button;
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>, players: Query<&DiedOf>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    players: Query<&DiedOf>,
+    in_game: Query<Entity, With<InGame>>,
+    mut camera: Query<&mut Transform, With<TrackingCamera>>,
+) {
+    commands.insert_resource(ClearColor(SCREEN_BACKGROUND_COLOR));
     let mut menu_button = None;
-    let r = root((overlay, c_root), &asset_server, &mut commands, |p| {
+    let r = root(c_root, &asset_server, &mut commands, |p| {
         node(primary_box, p, |p| {
             node((span.nb(), primary_box_main.nb()), p, |p| {
                 text("Game Over", (), main_text, p);
@@ -80,8 +92,50 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, players: Query<
     });
     commands.entity(r).insert(Screen);
     commands.entity(menu_button.unwrap()).insert(Button);
-}
+    for in_game in &in_game {
+        commands.entity(in_game).despawn_recursive();
+    }
+    for mut camera in &mut camera {
+        camera.translation = Vec3::new(0., 0., 5.);
+        camera.look_at(Vec3::ZERO, Vec3::Y);
+    }
 
+    commands.spawn((
+        Screen,
+        SpatialBundle {
+            transform: Transform::from_translation(Vec3::new(195.8, -109., -2.))
+                .with_scale(Vec3::ONE * 2.5)
+                .with_rotation(Quat::from_rotation_z(15f32.to_radians())),
+            ..Default::default()
+        },
+        WithMesh::PlayerDead,
+    ));
+
+    let Ok(player) = players.get_single() else {
+        return;
+    };
+    let mesh = match &player.0 {
+        DamageType::Sunlight => WithMesh::Sunlight,
+        DamageType::Danger(name) => match name {
+            DangerType::HolyHulk => WithMesh::HolyHulkFace,
+            DangerType::StealthySeraphim => WithMesh::StealthySeraphimFace,
+            DangerType::GuardianAngel => WithMesh::GuardianAngelFace,
+            DangerType::AngelicArcher => WithMesh::AngelicArchersFace,
+            DangerType::DivineDetonator => WithMesh::DivineDetonatorFace,
+        },
+        DamageType::TimeOut => WithMesh::PentagramFail,
+    };
+    commands.spawn((
+        Screen,
+        SpatialBundle {
+            transform: Transform::from_translation(Vec3::new(-141.8, 50., -2.))
+                .with_scale(Vec3::ONE * 1.5)
+                .with_rotation(Quat::from_rotation_z(15f32.to_radians())),
+            ..Default::default()
+        },
+        mesh,
+    ));
+}
 fn process_input(
     In(focused): In<Option<Entity>>,
     mut commands: Commands,

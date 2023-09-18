@@ -9,7 +9,8 @@ use serde::Deserialize;
 
 use crate::{
     app_state::AppState,
-    assets::MainGameAssets,
+    assets::{MainGameAssets, WithMesh},
+    in_game::TrackingCamera,
     ui::{
         buttons::{focus_text_button, focused_button_activated},
         classes::*,
@@ -52,6 +53,7 @@ fn setup(
     asset_server: Res<AssetServer>,
     assets: Res<MainGameAssets>,
     credits: Res<Assets<Credits>>,
+    mut camera: Query<&mut Transform, With<TrackingCamera>>,
 ) {
     let credits = credits
         .get(&assets.credits)
@@ -59,7 +61,7 @@ fn setup(
         .unwrap_or(&[]);
     commands.insert_resource(ClearColor(SCREEN_BACKGROUND_COLOR));
 
-    let r = root((c_root, opaque.nb()), &asset_server, &mut commands, |p| {
+    let r = root(c_root, &asset_server, &mut commands, |p| {
         node(primary_box, p, |p| {
             game_title::game_title(p);
 
@@ -77,6 +79,33 @@ fn setup(
         });
     });
     commands.entity(r).insert(Screen);
+
+    for mut camera in &mut camera {
+        camera.translation = Vec3::new(0., 0., 5.);
+        camera.look_at(Vec3::ZERO, Vec3::Y);
+    }
+
+    commands.spawn((
+        Screen,
+        SpatialBundle {
+            transform: Transform::from_translation(Vec3::new(-160., 135., -2.))
+                .with_scale(Vec3::ONE * 0.7)
+                .with_rotation(Quat::from_rotation_z(-13f32.to_radians())),
+            ..Default::default()
+        },
+        WithMesh::DevilPretendingFace,
+    ));
+
+    commands.spawn((
+        Screen,
+        SpatialBundle {
+            transform: Transform::from_translation(Vec3::new(140., 145., -2.))
+                .with_scale(Vec3::ONE * 0.7)
+                .with_rotation(Quat::from_rotation_z(12f32.to_radians())),
+            ..Default::default()
+        },
+        WithMesh::GuardianAngelFace,
+    ));
 }
 
 fn process_input(In(focused): In<Option<Entity>>, mut commands: Commands) {

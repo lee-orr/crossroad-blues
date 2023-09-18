@@ -50,14 +50,16 @@ pub fn primary_box(b: &mut NodeBundle) {
 pub fn primary_box_main(b: &mut dyn IntermediaryNodeBundleHandler) {
     b.style().grid_row = GridPlacement::start(1);
     b.style().grid_column = GridPlacement::start(1).set_span(3);
+    b.style().padding = UiRect::all(Val::Px(40.));
 }
 
 pub fn primary_box_item(b: &mut dyn IntermediaryNodeBundleHandler) {
     b.style().grid_column = GridPlacement::start(2).set_span(1);
+    b.style().padding = UiRect::all(Val::Px(20.));
 }
 
 pub fn c_button(b: &mut dyn IntermediaryNodeBundleHandler) {
-    b.style().padding = UiRect::all(Val::Px(10.));
+    b.style().padding = UiRect::all(Val::Px(15.));
     b.style().border = UiRect::all(Val::Px(2.));
     b.style().margin = UiRect::all(Val::Px(10.));
     b.style().justify_content = JustifyContent::Center;
@@ -96,20 +98,21 @@ pub fn apply_button_state(state: FocusState) -> NodeBundle {
 }
 
 pub fn button_text(assets: &AssetServer, t: &mut TextStyle) {
-    t.font_size = 20.;
+    t.font_size = 10.;
     t.color = colors::BORDER_COLOR;
-    t.font = assets.load("fonts/AMERSN__.ttf");
+    t.font = assets.load("fonts/Roman Antique.ttf");
 }
 
-pub fn main_text(_: &AssetServer, t: &mut TextStyle) {
-    t.font_size = 100.;
+pub fn main_text(assets: &AssetServer, t: &mut TextStyle) {
+    t.font_size = 40.;
     t.color = PRIMARY_COLOR;
+    t.font = assets.load("fonts/Roman Antique Italic.ttf");
 }
 
 pub fn standard_text(assets: &AssetServer, t: &mut TextStyle) {
-    t.font_size = 20.;
+    t.font_size = 10.;
     t.color = PRIMARY_COLOR;
-    t.font = assets.load("fonts/AMERSN__.ttf");
+    t.font = assets.load("fonts/Roman Antique.ttf");
 }
 
 pub fn span(b: &mut dyn IntermediaryNodeBundleHandler) {

@@ -6,7 +6,8 @@ use bevy_ui_dsl::*;
 
 use crate::{
     app_state::AppState,
-    assets::MainGameAssets,
+    assets::{MainGameAssets, WithMesh},
+    in_game::TrackingCamera,
     ui::{
         buttons::{focus_text_button, focused_button_activated, TypedFocusedButtonQuery},
         classes::*,
@@ -45,13 +46,18 @@ enum Buttons {
     Credits,
 }
 
-fn setup(mut commands: Commands, assets: Res<MainGameAssets>, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    assets: Res<MainGameAssets>,
+    asset_server: Res<AssetServer>,
+    mut camera: Query<&mut Transform, With<TrackingCamera>>,
+) {
     commands.insert_resource(ClearColor(SCREEN_BACKGROUND_COLOR));
 
     let mut start_button = None;
     let mut credits_button = None;
 
-    let r = root((c_root, opaque.nb()), &asset_server, &mut commands, |p| {
+    let r = root(c_root, &asset_server, &mut commands, |p| {
         node(primary_box, p, |p| {
             game_title::game_title(p);
             focus_text_button(
@@ -89,6 +95,22 @@ fn setup(mut commands: Commands, assets: Res<MainGameAssets>, asset_server: Res<
             },
         },
         Screen,
+    ));
+
+    for mut camera in &mut camera {
+        camera.translation = Vec3::new(0., 0., 5.);
+        camera.look_at(Vec3::ZERO, Vec3::Y);
+    }
+
+    commands.spawn((
+        Screen,
+        SpatialBundle {
+            transform: Transform::from_translation(Vec3::new(150., 121., -2.))
+                .with_scale(Vec3::ONE * 2.5)
+                .with_rotation(Quat::from_rotation_z(15f32.to_radians())),
+            ..Default::default()
+        },
+        WithMesh::PlayerFace,
     ));
 }
 

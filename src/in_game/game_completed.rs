@@ -4,15 +4,18 @@ use bevy_ui_dsl::*;
 
 use crate::{
     app_state::AppState,
+    assets::WithMesh,
     ui::{
         buttons::{focus_text_button, focused_button_activated, TypedFocusedButtonQuery},
         classes::*,
+        colors::SCREEN_BACKGROUND_COLOR,
         intermediary_node_bundles::*,
     },
 };
 
 use super::{
-    checkpoints::CheckpointCollected, game_state::GameState, player::CheckpointsConsumedForTeleport,
+    checkpoints::CheckpointCollected, game_state::GameState,
+    player::CheckpointsConsumedForTeleport, InGame, TrackingCamera,
 };
 use dexterous_developer::{
     dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
@@ -48,9 +51,12 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     players: Query<(&CheckpointCollected, &CheckpointsConsumedForTeleport)>,
+    in_game: Query<Entity, With<InGame>>,
+    mut camera: Query<&mut Transform, With<TrackingCamera>>,
 ) {
+    commands.insert_resource(ClearColor(SCREEN_BACKGROUND_COLOR));
     let mut menu_button = None;
-    let r = root((overlay, c_root), &asset_server, &mut commands, |p| {
+    let r = root(c_root, &asset_server, &mut commands, |p| {
         node(primary_box, p, |p| {
             node((span.nb(), primary_box_main.nb()), p, |p| {
                 text("You got the Deal!", (), main_text, p);
@@ -97,6 +103,24 @@ fn setup(
     });
     commands.entity(r).insert(Screen);
     commands.entity(menu_button.unwrap()).insert(Button);
+    for in_game in &in_game {
+        commands.entity(in_game).despawn_recursive();
+    }
+    for mut camera in &mut camera {
+        camera.translation = Vec3::new(0., 0., 5.);
+        camera.look_at(Vec3::ZERO, Vec3::Y);
+    }
+
+    commands.spawn((
+        Screen,
+        SpatialBundle {
+            transform: Transform::from_translation(Vec3::new(231.8, 146.3, -2.))
+                .with_scale(Vec3::ONE)
+                .with_rotation(Quat::from_rotation_z(-5f32.to_radians())),
+            ..Default::default()
+        },
+        WithMesh::PlayerCelebrate,
+    ));
 }
 
 fn process_input(

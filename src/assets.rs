@@ -27,18 +27,32 @@ impl Plugin for MainGameAssetPlugin {
 pub enum WithMesh {
     Player,
     HolyHulk,
+    HolyHulkFace,
     Checkpoint,
     Shadow(f32),
     RoadTile,
     PentagramCircle,
     PentagramTriangle(f32),
+    PentagramFail,
     Person,
     StealthySeraphim,
+    StealthySeraphimFace,
     GuardianAngel,
     AngelicArchers,
+    AngelicArchersFace,
     AngelicArrow,
     DivineDetonator,
+    DivineDetonatorFace,
     DivineDetonatorExplosion,
+    PlayerFace,
+    PlayerDead,
+    PlayerCelebrate,
+    DevilPretendingFace,
+    GuardianAngelFace,
+    DevilPretending,
+    LumberingDevil,
+    DevilFace,
+    Sunlight,
 }
 
 fn spawn_mesh(
@@ -53,7 +67,7 @@ fn spawn_mesh(
     };
     let rng = rng.get_mut();
     for (entity, with_mesh) in &meshes {
-        let mut transform = Transform::from_scale(30. * Vec3::ONE)
+        let mut transform = Transform::from_scale(Vec3::new(30., 30., 1.))
             .with_rotation(Quat::from_euler(
                 EulerRot::XYZ,
                 0., //90f32.to_radians(),
@@ -76,7 +90,7 @@ fn spawn_mesh(
                 assets.checkpoint.clone()
             }
             WithMesh::Shadow(r) => {
-                transform.scale = Vec3::ONE * 1.8 * *r;
+                transform.scale = Vec3::new(1., 1., 0.2) * 1.8 * *r;
                 rng.sample(&assets.shadows).unwrap().clone()
             }
             WithMesh::RoadTile => {
@@ -120,6 +134,20 @@ fn spawn_mesh(
                 transform.translation.z += 2.5;
                 assets.divine_detonator_explosion.clone()
             }
+            WithMesh::PlayerFace => assets.player_face.clone(),
+            WithMesh::DevilPretendingFace => assets.devil_pretending_face.clone(),
+            WithMesh::GuardianAngelFace => assets.guardian_angel_face.clone(),
+            WithMesh::PlayerDead => assets.player_dead.clone(),
+            WithMesh::PlayerCelebrate => assets.player_celebrate.clone(),
+            WithMesh::HolyHulkFace => assets.holy_hulk_face.clone(),
+            WithMesh::PentagramFail => assets.pentagram.clone(),
+            WithMesh::StealthySeraphimFace => assets.stealthy_seraphim_face.clone(),
+            WithMesh::AngelicArchersFace => assets.angelic_archer_face.clone(),
+            WithMesh::DivineDetonatorFace => assets.divine_detonator_face.clone(),
+            WithMesh::DevilPretending => assets.devil_pretending.clone(),
+            WithMesh::LumberingDevil => assets.lumbering_devil.clone(),
+            WithMesh::DevilFace => assets.devil_face.clone(),
+            WithMesh::Sunlight => assets.sunlight.clone(),
         };
         let mesh = Mesh2dHandle(mesh.clone());
         let Some(mut e) = commands.get_entity(entity) else {
@@ -147,7 +175,9 @@ impl FromWorld for MainColorMaterial {
             .get_resource_mut::<Assets<ColorMaterial>>()
             .expect("Couldn't get Asset for ColorMaterial");
 
-        let color_material = materials.add(ColorMaterial::default());
+        let color_material = materials.add(ColorMaterial {
+            ..Default::default()
+        });
         Self { color_material }
     }
 }
@@ -159,7 +189,7 @@ pub struct MainGameAssets {
     pub menu_music: Handle<AudioSource>,
     #[asset(path = "music/crossroad-blues.flac")]
     pub game_music: Handle<AudioSource>,
-    #[asset(path = "fonts/AMERSN__.ttf")]
+    #[asset(path = "fonts/Roman Antique.ttf")]
     pub default_font: Handle<Font>,
 
     #[asset(path = "textures/checkpoint-empty.png")]
@@ -184,9 +214,9 @@ pub struct MainGameAssets {
     pub player: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh34/Primitive0")]
     pub player_face: Handle<Mesh>,
-    #[asset(path = "models/meshes.gltf#Mesh39/Primitive0")]
-    pub player_dead: Handle<Mesh>,
     #[asset(path = "models/meshes.gltf#Mesh40/Primitive0")]
+    pub player_dead: Handle<Mesh>,
+    #[asset(path = "models/meshes.gltf#Mesh39/Primitive0")]
     pub player_celebrate: Handle<Mesh>,
     #[asset(
         paths(

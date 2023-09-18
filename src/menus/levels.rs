@@ -7,7 +7,8 @@ use dexterous_developer::{
 
 use crate::{
     app_state::AppState,
-    in_game::Levels,
+    assets::WithMesh,
+    in_game::{Levels, TrackingCamera},
     ui::{
         buttons::{focus_text_button, focused_button_activated},
         classes::*,
@@ -44,12 +45,17 @@ enum LevelButton {
     Menu,
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>, levels: Res<Levels>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    levels: Res<Levels>,
+    mut camera: Query<&mut Transform, With<TrackingCamera>>,
+) {
     commands.insert_resource(ClearColor(SCREEN_BACKGROUND_COLOR));
 
     let mut buttons = vec![];
 
-    let r = root((c_root, opaque.nb()), &asset_server, &mut commands, |p| {
+    let r = root(c_root, &asset_server, &mut commands, |p| {
         node(primary_box, p, |p| {
             game_title::game_title(p);
 
@@ -78,6 +84,32 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, levels: Res<Lev
     for (button, lvlbtn) in buttons.iter() {
         commands.entity(*button).insert(*lvlbtn);
     }
+    for mut camera in &mut camera {
+        camera.translation = Vec3::new(0., 0., 5.);
+        camera.look_at(Vec3::ZERO, Vec3::Y);
+    }
+
+    commands.spawn((
+        Screen,
+        SpatialBundle {
+            transform: Transform::from_translation(Vec3::new(195.1, 95., -2.))
+                .with_scale(Vec3::ONE * 5.)
+                .with_rotation(Quat::from_rotation_z(20f32.to_radians())),
+            ..Default::default()
+        },
+        WithMesh::Checkpoint,
+    ));
+
+    commands.spawn((
+        Screen,
+        SpatialBundle {
+            transform: Transform::from_translation(Vec3::new(-223.1, -99., -2.))
+                .with_scale(Vec3::ONE * 5.)
+                .with_rotation(Quat::from_rotation_z(-30f32.to_radians())),
+            ..Default::default()
+        },
+        WithMesh::Checkpoint,
+    ));
 }
 
 fn process_input(
