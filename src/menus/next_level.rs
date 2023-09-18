@@ -8,7 +8,7 @@ use dexterous_developer::{
 use crate::{
     app_state::AppState,
     assets::WithMesh,
-    in_game::{Levels, TrackingCamera},
+    in_game::{CurrentLevel, Levels, TrackingCamera},
     ui::{
         buttons::{focus_text_button, focused_button_activated},
         classes::*,
@@ -19,20 +19,21 @@ use crate::{
 };
 
 use super::game_title;
-pub struct LevelsPlugin;
+pub struct NextLevelPlugin;
 
-impl Plugin for LevelsPlugin {
+impl Plugin for NextLevelPlugin {
     fn build(&self, app: &mut App) {
         app.setup_reloadable_elements::<reloadable>();
     }
 }
 
-#[dexterous_developer_setup(levels)]
+#[dexterous_developer_setup(next_level)]
 fn reloadable(app: &mut ReloadableAppContents) {
-    app.reset_setup_in_state::<Screen, _, _>(AppState::Levels, setup)
+    app.reset_setup_in_state::<Screen, _, _>(AppState::ToNextLevel, setup)
         .add_systems(
             Update,
-            (focused_button_activated.pipe(process_input)).run_if(in_state(AppState::Levels)),
+            (focused_button_activated.pipe(process_input), level_ready)
+                .run_if(in_state(AppState::ToNextLevel)),
         );
 }
 
@@ -40,17 +41,20 @@ fn reloadable(app: &mut ReloadableAppContents) {
 struct Screen;
 
 #[derive(Component, Copy, Clone)]
-enum LevelButton {
-    Level(usize),
-    Menu,
-}
+struct LevelButton;
+
+#[derive(Component)]
+struct LevelButtonReady;
 
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    levels: Res<Levels>,
+    mut current_level: ResMut<CurrentLevel>,
     mut camera: Query<&mut Transform, With<TrackingCamera>>,
 ) {
+    if current_level.song_handle.is_none() {
+        current_level.song_handle = Some(asset_server.load(&current_level.song));
+    }
     commands.insert_resource(ClearColor(SCREEN_BACKGROUND_COLOR));
 
     let mut buttons = vec![];
@@ -59,25 +63,18 @@ fn setup(
         node(primary_box, p, |p| {
             game_title::game_title(p);
 
-            for (i, level) in levels.0.iter().enumerate() {
-                let button = focus_text_button(
-                    level.name.as_str(),
-                    (c_button.nb(), primary_box_item.nb()),
-                    apply_button_state,
-                    button_text,
-                    p,
-                );
-                buttons.push((button, LevelButton::Level(i)));
+            for t in current_level.initial_text.iter() {
+                text(t.as_str(), primary_box_item.nb(), standard_text, p);
             }
 
             let button = focus_text_button(
-                "Main Menu",
-                (c_button.nb(), primary_box_item.nb()),
+                "Start Mission",
+                (c_button.nb(), primary_box_item.nb(), disable_button.nb()),
                 apply_button_state,
                 button_text,
                 p,
             );
-            buttons.push((button, LevelButton::Menu));
+            buttons.push((button, LevelButton));
         });
     });
     commands.entity(r).insert(Screen);
@@ -92,46 +89,54 @@ fn setup(
     commands.spawn((
         Screen,
         SpatialBundle {
-            transform: Transform::from_translation(Vec3::new(195.1, 95., -2.))
-                .with_scale(Vec3::ONE * 5.)
-                .with_rotation(Quat::from_rotation_z(20f32.to_radians())),
+            transform: Transform::from_translation(Vec3::new(-157.7, 62.6, -2.))
+                .with_scale(Vec3::ONE * 3.2)
+                .with_rotation(Quat::from_rotation_z(5f32.to_radians())),
             ..Default::default()
         },
-        WithMesh::Checkpoint,
+        WithMesh::DevilFace,
     ));
 
     commands.spawn((
         Screen,
         SpatialBundle {
-            transform: Transform::from_translation(Vec3::new(-223.1, -99., -2.))
-                .with_scale(Vec3::ONE * 5.)
-                .with_rotation(Quat::from_rotation_z(-30f32.to_radians())),
+            transform: Transform::from_translation(Vec3::new(239., -99., -2.))
+                .with_scale(Vec3::ONE * 3.),
             ..Default::default()
         },
-        WithMesh::Checkpoint,
+        WithMesh::PlayerFace,
     ));
+}
+
+fn level_ready(
+    mut commands: Commands,
+    current_level: Res<CurrentLevel>,
+    audio: Res<Assets<AudioSource>>,
+    buttons: Query<(Entity, &LevelButton), Without<LevelButtonReady>>,
+) {
+    if buttons.is_empty() {
+        return;
+    }
+    let Some(handle) = &current_level.song_handle else {
+        return;
+    };
+    if audio.get(handle).is_some() {
+        for (button, _) in &buttons {
+            commands.entity(button).insert(LevelButtonReady);
+        }
+    }
 }
 
 fn process_input(
     In(focused): In<Option<Entity>>,
-    buttons: Query<&LevelButton>,
+    buttons: Query<&LevelButton, With<LevelButtonReady>>,
     mut commands: Commands,
-    levels: Res<Levels>,
 ) {
     let Some(entity) = focused else {
         return;
     };
-    let Ok(button) = buttons.get(entity) else {
+    let Ok(_button) = buttons.get(entity) else {
         return;
     };
-    match button {
-        LevelButton::Level(i) => {
-            if let Some(level) = levels.0.get(*i) {
-                commands.insert_resource(CurrentLevelID(*i));
-                commands.insert_resource(level.clone());
-                commands.insert_resource(NextState(Some(AppState::ToNextLevel)))
-            }
-        }
-        LevelButton::Menu => commands.insert_resource(NextState(Some(AppState::MainMenu))),
-    };
+    commands.insert_resource(NextState(Some(AppState::InGame)));
 }

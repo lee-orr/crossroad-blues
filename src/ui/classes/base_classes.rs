@@ -60,7 +60,7 @@ pub fn c_button(b: &mut dyn IntermediaryNodeBundleHandler) {
     b.style().margin = UiRect::all(Val::Px(10.));
     b.style().justify_content = JustifyContent::Center;
     b.style().align_items = AlignItems::Center;
-    b.background_color().0 = colors::PRIMARY_COLOR;
+    b.background_color().0 = colors::PRIMARY_COLOR_BUTTON;
 }
 
 pub fn c_button_prioritized(b: &mut dyn IntermediaryNodeBundleHandler) {
@@ -217,4 +217,32 @@ pub fn checkpoint_marker_content(b: &mut NodeBundle) {
     b.style.height = Val::Percent(0.);
     b.style.display = Display::None;
     b.style.overflow = Overflow::clip();
+}
+
+pub fn disable_button(b: &mut dyn IntermediaryNodeBundleHandler) {
+    b.style().display = Display::None;
+}
+
+pub fn in_game_text_box(b: &mut dyn IntermediaryNodeBundleHandler) {
+    b.style().position_type = PositionType::Absolute;
+    b.style().left = Val::Px(10.);
+    b.style().bottom = Val::Px(10.);
+    b.style().right = Val::Px(10.);
+    b.style().padding = UiRect::all(Val::Px(20.));
+    b.background_color().0 = colors::PRIMARY_BACKGROUND_COLOR;
+    b.style().flex_direction = FlexDirection::Column;
+    b.style().align_items = AlignItems::FlexStart;
+}
+
+pub fn devil_in_game_text_box(assets: &AssetServer, b: &mut ImageBundle) {
+    b.style.position_type = PositionType::Absolute;
+    b.z_index = ZIndex::Global(-1);
+    b.style.top = Val::Px(-68.);
+    b.style.left = Val::Percent(6.5);
+    b.style.width = Val::Auto;
+    b.style.height = Val::Px(70.);
+    b.image = UiImage {
+        texture: assets.load("textures/devil_in_game_talking.png"),
+        ..default()
+    };
 }

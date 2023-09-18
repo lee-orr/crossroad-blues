@@ -37,7 +37,10 @@ use menus::{credits, loading_state, menu};
 
 use ui::{colors::DEFAULT_AMBIENT, UiPlugin};
 
-use crate::{app_state::DrawDebugGizmos, menus::levels::LevelsPlugin};
+use crate::{
+    app_state::DrawDebugGizmos,
+    menus::{levels::LevelsPlugin, next_level::NextLevelPlugin},
+};
 
 #[hot_bevy_main]
 fn bevy_main(initial: impl InitialPlugins) {
@@ -78,6 +81,7 @@ fn bevy_main(initial: impl InitialPlugins) {
             CreditsPlugin,
             InGamePlugin,
             LevelsPlugin,
+            NextLevelPlugin,
             MainGameAssetPlugin,
             UiPlugin,
         ))

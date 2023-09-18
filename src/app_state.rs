@@ -10,6 +10,7 @@ pub enum AppState {
     Credits,
     InGame,
     Levels,
+    ToNextLevel,
 }
 
 #[derive(Resource, Default)]

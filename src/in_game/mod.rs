@@ -9,6 +9,7 @@ mod game_state;
 mod generate_level;
 mod guardian_angel;
 mod holy_hulk;
+mod in_game_text;
 mod movement;
 mod pause_screen;
 mod player;
@@ -34,8 +35,8 @@ use leafwing_input_manager::prelude::InputManagerPlugin;
 use crate::{
     app_state::AppState,
     in_game::{
-        checkpoints::checkpoint_plugin, danger::danger_plugin, ritual::ritual_plugin,
-        souls::souls_plugin,
+        checkpoints::checkpoint_plugin, danger::danger_plugin, in_game_text::in_game_text_plugin,
+        ritual::ritual_plugin, souls::souls_plugin,
     },
 };
 
@@ -58,7 +59,7 @@ use dexterous_developer::{
     dexterous_developer_setup, ReloadableAppContents, ReloadableElementsSetup,
 };
 
-pub use generate_level::Levels;
+pub use generate_level::{CurrentLevel, Levels};
 pub use player::TrackingCamera;
 pub struct InGamePlugin;
 
@@ -132,6 +133,7 @@ fn reloadable(app: &mut ReloadableAppContents) {
     danger_plugin(app);
     level_generate_plugin(app);
     ritual_plugin(app);
+    in_game_text_plugin(app);
 }
 
 #[derive(Component)]

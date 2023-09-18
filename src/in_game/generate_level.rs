@@ -50,6 +50,12 @@ pub struct CurrentLevel {
     pub ambient_level: f32,
     pub curviness: f32,
     pub segments: Vec<Segment>,
+
+    pub initial_text: Vec<String>,
+    pub timed_text: Vec<(f32, f32, String)>,
+
+    #[serde(skip)]
+    pub song_handle: Option<Handle<AudioSource>>,
 }
 
 impl Default for CurrentLevel {
@@ -57,6 +63,9 @@ impl Default for CurrentLevel {
         Self {
             name: "Default Level".to_string(),
             song: "music/crossroad-blues.flac".to_string(),
+            song_handle: None,
+            initial_text: vec![],
+            timed_text: vec![],
             song_length: 60.,
             bg_color: SCREEN_BACKGROUND_COLOR,
             ambient: DEFAULT_AMBIENT.color,
@@ -144,9 +153,14 @@ fn spawn_level(
         color: level.ambient,
         brightness: level.ambient_level,
     });
+    let source = if let Some(handle) = &level.song_handle {
+        handle.clone()
+    } else {
+        asset_server.load(&level.song)
+    };
     commands.spawn((
         AudioBundle {
-            source: asset_server.load(&level.song),
+            source,
             settings: PlaybackSettings {
                 volume: Volume::Absolute(VolumeLevel::new(0.7)),
                 ..Default::default()

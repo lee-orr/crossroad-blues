@@ -11,11 +11,12 @@ use crate::{
         colors::SCREEN_BACKGROUND_COLOR,
         intermediary_node_bundles::*,
     },
+    CurrentLevelID,
 };
 
 use super::{
     checkpoints::CheckpointCollected, game_state::GameState,
-    player::CheckpointsConsumedForTeleport, InGame, TrackingCamera,
+    player::CheckpointsConsumedForTeleport, InGame, Levels, TrackingCamera,
 };
 use dexterous_developer::{
     dexterous_developer_setup, ReloadableApp, ReloadableAppContents, ReloadableElementsSetup,
@@ -45,7 +46,10 @@ fn reloadable(app: &mut ReloadableAppContents) {
 struct Screen;
 
 #[derive(Component)]
-struct Button;
+enum Button {
+    Menu,
+    NextLevel,
+}
 
 fn setup(
     mut commands: Commands,
@@ -53,9 +57,12 @@ fn setup(
     players: Query<(&CheckpointCollected, &CheckpointsConsumedForTeleport)>,
     in_game: Query<Entity, With<InGame>>,
     mut camera: Query<&mut Transform, With<TrackingCamera>>,
+    levels: Res<Levels>,
+    current_level_id: Res<CurrentLevelID>,
 ) {
     commands.insert_resource(ClearColor(SCREEN_BACKGROUND_COLOR));
     let mut menu_button = None;
+    let mut level_button = None;
     let r = root(c_root, &asset_server, &mut commands, |p| {
         node(primary_box, p, |p| {
             node((span.nb(), primary_box_main.nb()), p, |p| {
@@ -91,6 +98,17 @@ fn setup(
                 });
             }
 
+            if current_level_id.0 < levels.0.len() - 1 {
+                focus_text_button(
+                    "Next Level",
+                    (c_button.nb(), primary_box_item.nb()),
+                    apply_button_state,
+                    button_text,
+                    p,
+                )
+                .set(&mut level_button);
+            }
+
             focus_text_button(
                 "Main Menu",
                 (c_button.nb(), primary_box_item.nb()),
@@ -102,7 +120,10 @@ fn setup(
         });
     });
     commands.entity(r).insert(Screen);
-    commands.entity(menu_button.unwrap()).insert(Button);
+    commands.entity(menu_button.unwrap()).insert(Button::Menu);
+    if let Some(level_button) = level_button {
+        commands.entity(level_button).insert(Button::NextLevel);
+    }
     for in_game in &in_game {
         commands.entity(in_game).despawn_recursive();
     }
@@ -127,14 +148,31 @@ fn process_input(
     In(focused): In<Option<Entity>>,
     mut commands: Commands,
     interaction_query: TypedFocusedButtonQuery<'_, '_, '_, Button>,
+    levels: Res<Levels>,
+    current_level_id: Res<CurrentLevelID>,
 ) {
     let Some(focused) = focused else {
         return;
     };
-    let Some((_entity, _btn)) = interaction_query.get(focused).ok() else {
+    let Some((_entity, btn)) = interaction_query.get(focused).ok() else {
         return;
     };
-    commands.insert_resource(NextState(Some(AppState::MainMenu)));
+
+    match btn {
+        Button::Menu => {
+            commands.insert_resource(NextState(Some(AppState::MainMenu)));
+        }
+        Button::NextLevel => {
+            let next_level_id = current_level_id.0 + 1;
+            if let Some(level) = levels.0.get(next_level_id) {
+                commands.insert_resource(level.clone());
+                commands.insert_resource(CurrentLevelID(next_level_id));
+                commands.insert_resource(NextState(Some(AppState::ToNextLevel)));
+            } else {
+                commands.insert_resource(NextState(Some(AppState::Levels)));
+            }
+        }
+    }
 }
 
 fn process_keyboard_input(mut commands: Commands, keys: Res<Input<KeyCode>>) {

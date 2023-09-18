@@ -6,6 +6,26 @@
   segments:
     - tree_density: 0.2
       checkpoint_density: 0.1
+      danger_densities: []
+  initial_text:
+    - '"So... you think you''re ready to get some contracts...'
+    - "Let's see what you've got first"
+  timed_text:
+    - - 0
+      - 5
+      - "Try to reach the crossroads. But remember - the sunlight hurts out there."
+    - - 7
+      - 10
+      - "The ritual is starting - get into the summoning circle before it's done!"
+- name: "Crossroads Blues"
+  song: "music/crossroad-blues-menu.flac"
+  song_length: 15
+  curviness: 150
+  bg_color: !Rgba { red: 0.9, green: 0.39, blue: 0.05, alpha: 1 }
+  segments:
+    - tree_density: 0.2
+      checkpoint_density: 0.1
+      danger_densities: []
     # - tree_density: 0.2
     #   checkpoint_density: 0.3
     #   danger_densities:
