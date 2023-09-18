@@ -31,7 +31,7 @@ pub struct CurrentLevel {
     pub bg_color: Color,
     pub ambient: AmbientLight,
     pub curviness: f32,
-    pub num_segments: usize,
+    pub segments: Vec<Segment>,
 }
 
 impl Default for CurrentLevel {
@@ -42,7 +42,70 @@ impl Default for CurrentLevel {
             bg_color: SCREEN_BACKGROUND_COLOR,
             ambient: DEFAULT_AMBIENT,
             curviness: 120.,
-            num_segments: 3,
+            segments: vec![
+                Segment {
+                    tree_density: 0.2,
+                    checkpoint_density: 0.1,
+                    danger_densities: vec![],
+                    ..Default::default()
+                },
+                Segment {
+                    tree_density: 0.5,
+                    checkpoint_density: 0.1,
+                    danger_densities: vec![(DangerType::HolyHulk, 0.4)],
+                    ..Default::default()
+                },
+                Segment {
+                    tree_density: 0.4,
+                    checkpoint_density: 0.3,
+                    danger_densities: vec![
+                        (DangerType::HolyHulk, 0.5),
+                        (DangerType::StealthySeraphim, 0.2),
+                    ],
+                    ..Default::default()
+                },
+                Segment {
+                    tree_density: 0.9,
+                    checkpoint_density: 0.2,
+                    danger_densities: vec![
+                        (DangerType::HolyHulk, 0.1),
+                        (DangerType::StealthySeraphim, 0.5),
+                    ],
+                    ..Default::default()
+                },
+                Segment {
+                    tree_density: 1.0,
+                    checkpoint_density: 0.4,
+                    danger_densities: vec![
+                        (DangerType::HolyHulk, 0.6),
+                        (DangerType::StealthySeraphim, 0.5),
+                    ],
+                    ..Default::default()
+                },
+            ],
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Segment {
+    pub tree_density: f32,
+    pub tree_variation: f32,
+    pub checkpoint_density: f32,
+    pub checkpoint_variation: f32,
+    pub danger_densities: Vec<(DangerType, f32)>,
+    pub split_levels: u8,
+}
+
+impl Default for Segment {
+    fn default() -> Self {
+        Self {
+            tree_density: 0.9,
+            checkpoint_density: 0.1,
+            danger_densities: vec![(DangerType::HolyHulk, 0.3)],
+            split_levels: 1,
+            tree_variation: 0.2,
+            checkpoint_variation: 0.2,
         }
     }
 }
@@ -74,7 +137,7 @@ fn spawn_level(
         rng,
         level.song_length.as_secs_f32() * default_move * (0.5 + 0.3 * rng.f32()) / 2.,
         level.curviness,
-        level.num_segments,
+        level.segments.len().max(1),
     );
 
     commands
@@ -87,8 +150,9 @@ fn spawn_level(
                     }
                 });
 
-            for section in level_shapes.section.iter() {
-                fill_section(p, section, rng);
+            for (index, section) in level_shapes.section.iter().enumerate() {
+                let segment = level.segments.get(index).cloned().unwrap_or_default();
+                fill_section(p, section, rng, &segment);
             }
 
             p.spawn((
@@ -249,24 +313,37 @@ fn spawn_road_segment(commands: &mut ChildBuilder, segment: &LevelRoadSegment, r
     }
 }
 
-fn fill_section(commands: &mut ChildBuilder, section: &LevelSections, rng: &Rng) {
-    fill_section_inner(1, commands, section, rng);
+fn fill_section(
+    commands: &mut ChildBuilder,
+    section: &LevelSections,
+    rng: &Rng,
+    segment: &Segment,
+) {
+    fill_section_inner(segment.split_levels.max(1), commands, section, rng, segment);
 }
 
 const MIN_SECTION_SIZE: f32 = 100.;
 
 fn fill_section_inner(
-    level: usize,
+    level: u8,
     commands: &mut ChildBuilder,
     section: &LevelSections,
     rng: &Rng,
+    segment: &Segment,
 ) {
     let subdivide = level > 0 && rng.bool() && section.size_min() > MIN_SECTION_SIZE;
     if subdivide {
         let level = level - 1;
         let sub_sections = section.subdivide_sections(rng);
         for section in sub_sections.iter() {
-            fill_section_inner(level, commands, section, rng);
+            let segment = Segment {
+                tree_density: segment.tree_density
+                    * (1. + segment.tree_variation * rng.f32_normalized()),
+                checkpoint_density: segment.checkpoint_density
+                    * (1. + segment.checkpoint_variation * rng.f32_normalized()),
+                ..segment.clone()
+            };
+            fill_section_inner(level, commands, section, rng, &segment);
         }
     } else {
         let center = section.section_center();
@@ -274,25 +351,38 @@ fn fill_section_inner(
             .spawn((SpatialBundle::default(), Name::new("Trees")))
             .with_children(|p| {
                 let seed = rng.f32() * 1423.;
-                let tree_density = simplex_noise_2d_seeded(center, seed).abs() * 0.4 + 0.5;
+                let tree_density = (simplex_noise_2d_seeded(center, seed).abs()
+                    * segment.tree_variation
+                    + (1. - segment.tree_variation))
+                    * segment.tree_density;
+                let tree_density = tree_density.clamp(0., 1.);
 
                 place_trees(2, p, section, rng, tree_density);
             });
 
-        commands
-            .spawn((SpatialBundle::default(), Name::new("Dangers")))
-            .with_children(|p| {
-                let seed = rng.f32() * 115834.;
-                let danger_density = simplex_noise_2d_seeded(center, seed).abs() * 0.4 + 0.2;
-                place_danger(2, p, section, rng, danger_density);
-            });
+        for (danger, root_danger_density) in &segment.danger_densities {
+            let name = format!("{danger:?}");
+            commands
+                .spawn((SpatialBundle::default(), Name::new(name)))
+                .with_children(|p| {
+                    let seed = rng.f32() * 115834.;
+                    let danger_density = (simplex_noise_2d_seeded(center, seed).abs() * 0.5 + 0.5)
+                        * root_danger_density;
+                    let danger_density = danger_density.clamp(0., 1.);
+                    place_danger(2, p, section, rng, danger_density, danger);
+                });
+        }
 
         commands
             .spawn((SpatialBundle::default(), Name::new("Checkpoints")))
             .with_children(|p| {
                 let seed = rng.f32() * 124326.;
-                let danger_density = simplex_noise_2d_seeded(center, seed).abs() * 0.3 + 0.1;
-                place_checkpoints(3, p, section, rng, danger_density);
+                let checkpoint_density = (simplex_noise_2d_seeded(center, seed).abs()
+                    * segment.checkpoint_variation
+                    + (1. - segment.checkpoint_variation))
+                    * segment.checkpoint_density;
+                let checkpoint_density = checkpoint_density.clamp(0., 1.);
+                place_checkpoints(3, p, section, rng, checkpoint_density);
             });
     }
 }
@@ -373,20 +463,28 @@ fn place_danger(
     section: &LevelSections,
     rng: &Rng,
     density: f32,
+    danger: &DangerType,
 ) {
     let main_axis = section.main_axis_min_length();
     let cross_axis = section.cross_axis_min_length();
 
     let Some(size) = DANGER_DISTANCES.get(level) else {
         if level > DANGER_DISTANCES.len() && !DANGER_DISTANCES.is_empty() {
-            place_danger(DANGER_DISTANCES.len() - 1, commands, section, rng, density);
+            place_danger(
+                DANGER_DISTANCES.len() - 1,
+                commands,
+                section,
+                rng,
+                density,
+                danger,
+            );
         }
         error!("No danger distances available");
         return;
     };
 
     if (main_axis < *size || cross_axis < *size) && level > 0 {
-        place_danger(level - 1, commands, section, rng, density);
+        place_danger(level - 1, commands, section, rng, density, danger);
         return;
     }
 
@@ -409,7 +507,7 @@ fn place_danger(
             let spawn_here = rng.f32() < density;
             if !spawn_here {
                 if level > 0 {
-                    place_danger(level - 1, commands, &inner, rng, density);
+                    place_danger(level - 1, commands, &inner, rng, density, danger);
                 }
                 continue;
             }
@@ -422,7 +520,7 @@ fn place_danger(
                     transform: Transform::from_translation(point.extend(0.)),
                     ..Default::default()
                 },
-                DangerType::StealthySeraphim,
+                *danger,
             ));
         }
     }
