@@ -22,7 +22,7 @@ bevy_turborand = { version = "0.6", features = ["rand"] }
 bevy-ui-navigation = "0.31.0"
 bevy_tweening = "*"
 bevy-sequential-actions = "*"
-dexterous_developer = "0.0.10"
+dexterous_developer = "0.0.11"
 big-brain = "0.18"
 seldom_state = { version = "0.7", features = ["leafwing_input"] }
 noisy_bevy = "0.4"
@@ -36,6 +36,3 @@ crate-type = ["rlib"]
 [[bin]]
 name = "crossroad-blues"
 path = "src/main.rs"
-
-[workspace]
-members = ["game_dynamic"]
